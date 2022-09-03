@@ -1,11 +1,10 @@
-#!/usr/bin/env bash
+#!/bin/sh
 set -ex
 
 # 依赖 setup-openrc.sh
 
 apk add docker
-
-rc-update add docker default
+apk add docker-cli docker-cli-compose docker-cli-buildx
 
 cat <<EOF | tee /etc/conf.d/docker
 #DOCKER_LOGFILE="/var/log/docker.log"
@@ -17,7 +16,8 @@ DOCKERD_BINARY="/usr/bin/dockerd"
 DOCKER_OPTS="-H unix:///var/run/docker.sock -H tcp://0.0.0.0:2375"
 EOF
 
-service docker restart
+rc-update add docker default
+service docker start
 
 # apk add docker-bash-completion
 # apk add docker-compose-bash-completion

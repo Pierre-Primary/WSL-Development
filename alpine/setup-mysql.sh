@@ -1,13 +1,9 @@
-#!/usr/bin/env bash
+#!/bin/sh
 set -ex
 
-dir=$(
-    cd "$(dirname "$0")"
-    pwd
-)
+apk add mariadb mariadb-client
 
-"$dir/setup-openrc.sh"
+/etc/init.d/mariadb setup
 
-apk add mariadb
 rc-update add mariadb default
-service mariadb start
+rc-service mariadb start

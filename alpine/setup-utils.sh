@@ -1,9 +1,5 @@
-#!/usr/bin/env bash
+#!/bin/sh
 set -ex
-
-# 换源
-sed -i 's/dl-cdn.alpinelinux.org/mirrors.ustc.edu.cn/g' /etc/apk/repositories
-apk update
 
 # apk add ca-certificates util-linux
 apk add busybox-extras
@@ -31,9 +27,6 @@ apk add openssh-client
 
 apk add git subversion
 
-# 安装 sudo
-apk add sudo
-echo '%wheel ALL=(ALL) ALL' >/etc/sudoers.d/wheel
 
 # apk add musl-locales
 # sed -ie "/^export LANG=/d" /etc/profile.d/locale.sh

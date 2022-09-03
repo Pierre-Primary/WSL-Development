@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/sh
 set -ex
 
 # 切换 bash，并安装 completion
