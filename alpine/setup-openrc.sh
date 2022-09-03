@@ -28,9 +28,6 @@ chmod +x /etc/wsl/wsl-init
 cat <<EOF | tee /etc/wsl.conf
 [boot]
 command = /etc/wsl/wsl-init
-
-# [user]
-# default = test
 EOF
 
 ##############################################################################################
