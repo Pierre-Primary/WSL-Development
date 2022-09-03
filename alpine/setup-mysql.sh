@@ -30,6 +30,7 @@ join_buffer_size = 128K
 # binlog_cache_size = 16K
 tmp_table_size = 4M
 EOF
+# 查看配置是否生效
 # SELECT  @@key_buffer_size  / (1024 * 1024) ;
 # SELECT  @@query_cache_size  / (1024 * 1024) ;
 # SELECT  @@query_cache_limit / (1024 * 1024) ;
