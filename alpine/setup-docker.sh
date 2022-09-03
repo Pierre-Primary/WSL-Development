@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -ex
 
+# 依赖 setup-openrc.sh
+
 apk add docker
 
 rc-update add docker default
