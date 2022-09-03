@@ -7,10 +7,10 @@ apk add openrc
 # openrc 依靠 inittab
 # WSL中初始进程 "/init" 无法启动 inittab，需要重新执行 "/sbin/init"
 # "/sbin/init" 必须做为初始进程 (PID 1) 运行，使用 namespace 技术
-# 依赖 util-linux 软件包实现 namespace
-# 依赖 nohup 和 & 实现后台运行
+# 依赖 util-linux 软件包中的 (nsenter,nsenter) 命令实现 namespace
+# 依赖 coreutils 软件包中的 (nohup) 命令和 & 实现后台运行
 
-apk add util-linux
+apk add util-linux coreutils
 
 mkdir -p /etc/wsl
 
