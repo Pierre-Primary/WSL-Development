@@ -1,7 +1,10 @@
 #!/bin/sh
 set -ex
 
-# 依赖 setup-openrc.sh
+cd "$(dirname "$0")"
+
+# 安装 openrc
+./setup-openrc.sh
 
 # 安装服务
 apk add docker

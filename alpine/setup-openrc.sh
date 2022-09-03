@@ -18,6 +18,10 @@ cat <<"EOF" | tee /etc/wsl/wsl-init
 #!/bin/sh
 set -eu
 if [ $$ -ne "1" ]; then
+    init_pid="$(ps -o pid,args | awk '$2 ~ /^\/sbin\/init/ { print $1 }')"
+    if [ -n "$init_pid" ]; then
+        exit
+    fi
     exec nohup sh -c "echo \$$ >/run/wsl-init.pid; exec /usr/bin/env -i /usr/bin/unshare --pid --mount-proc --fork --propagation unchanged -- ${0}" >/var/log/wsl-init.out 2>&1 &
     exit
 fi
@@ -49,7 +53,7 @@ cat <<"EOF" | tee /etc/wsl/wsl-nsenter
 set -e
 if [ -r /run/wsl-init.pid ]; then
     parent="$(cat /run/wsl-init.pid)"
-    pid="$(ps -o pid,ppid,comm | awk '$2 == "'"${parent}"'" && $3 ~ /^init/ { print $1 }')"
+    pid="$(ps -o pid,ppid,args | awk '$2 == "'"${parent}"'" && $3 ~ /^\/sbin\/init/ { print $1 }')"
     if [ -n "$pid" ] && [ "$pid" -ne 1 ]; then
         if [ "$USER" == "root" ]; then
             exec /etc/wsl/wsl-nsenter-core "$pid"
@@ -68,4 +72,8 @@ if [ -f "$HOME/.wsl-nsenter.env" ]; then
 fi
 EOF
 chmod +x /etc/wsl/wsl-nsenter
-ln -s /etc/wsl/wsl-nsenter /etc/profile.d/00-wsl-nsenter.sh
+ln -sf /etc/wsl/wsl-nsenter /etc/profile.d/00-wsl-nsenter.sh
+
+##############################################################################################
+# 马上生效
+/etc/wsl/wsl-init
