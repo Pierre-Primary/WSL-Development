@@ -5,7 +5,7 @@ set -ex
 sed -i 's/dl-cdn.alpinelinux.org/mirrors.ustc.edu.cn/g' /etc/apk/repositories
 apk update
 
-# apk add ca-certificates util-linux openrc
+# apk add ca-certificates util-linux
 apk add busybox-extras
 apk add coreutils
 
