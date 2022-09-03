@@ -16,11 +16,11 @@ apk add mariadb
 cat <<EOF | tee /etc/my.cnf.d/limit_mem.cnf
 [mysqld]
 performance_schema = off
-key_buffer_size = 32M
+key_buffer_size = 16M
 query_cache_size = 1M
 query-cache-limit = 1M
-innodb_buffer_pool_size = 32M
-innodb_log_buffer_size = 8M
+innodb_buffer_pool_size = 16M
+innodb_log_buffer_size = 4M
 max_connections = 50
 read_buffer_size = 64K
 read_rnd_buffer_size = 128K
@@ -28,7 +28,7 @@ sort_buffer_size = 512K
 join_buffer_size = 128K
 # thread_stack = 196K
 # binlog_cache_size = 16K
-tmp_table_size = 8M
+tmp_table_size = 4M
 EOF
 # SELECT  @@key_buffer_size  / (1024 * 1024) ;
 # SELECT  @@query_cache_size  / (1024 * 1024) ;
