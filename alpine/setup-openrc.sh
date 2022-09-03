@@ -25,6 +25,7 @@ exec /sbin/init
 EOF
 chmod +x /etc/wsl/wsl-init
 
+# wel.conf  boot.command
 cat <<EOF | tee /etc/wsl.conf
 [boot]
 command = /etc/wsl/wsl-init
