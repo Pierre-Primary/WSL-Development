@@ -1,7 +1,12 @@
 #!/usr/bin/env bash
 set -ex
 
-# 依赖 setup-openrc.sh
+dir=$(
+    cd "$(dirname "$0")"
+    pwd
+)
+
+"$dir/setup-openrc.sh"
 
 apk add mariadb
 rc-update add mariadb default
