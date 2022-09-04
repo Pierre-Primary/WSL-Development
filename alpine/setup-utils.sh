@@ -7,6 +7,12 @@ apk add coreutils
 # busybox 拓展命令集 (telnet 等等)
 apk add busybox-extras
 
+apk add util-linux
+
+apk add shadow
+
+apk add sudo
+
 # 证书管理
 apk add ca-certificates
 
@@ -21,6 +27,9 @@ apk add iproute2
 
 # 网络管理 ifconfig
 apk add net-tools
+
+# 网桥管理 brctl
+apk add bridge-utils
 
 # ps top free 等命令
 apk add procps
