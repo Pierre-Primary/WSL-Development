@@ -39,7 +39,7 @@ EOF
 
 cat <<"EOF" | tee /etc/wsl/wsl-nsenter-core
 #!/bin/sh
-exec /usr/bin/nsenter -p -m -t "$1" --wdns="$(pwd)" -- su "${2:-root}"
+exec /usr/bin/nsenter --pid --mount --target="$1" --wdns="$(pwd)" -- su "${2:-root}"
 EOF
 chmod +x /etc/wsl/wsl-nsenter-core
 
