@@ -14,7 +14,6 @@ apk add util-linux
 
 mkdir -p /etc/wsl
 
-chmod +x /etc/wsl/wsl-init
 cat <<"EOF" | tee /etc/wsl/wsl-init
 #!/bin/sh
 if [ $$ -ne "1" ]; then
@@ -41,7 +40,6 @@ EOF
 
 cat <<"EOF" | tee /etc/wsl/wsl-nsenter-core
 #!/bin/sh
-set -e
 exec /usr/bin/nsenter -p -m -t "$1" --wdns="$(pwd)" -- su "${2:-root}"
 EOF
 chmod +x /etc/wsl/wsl-nsenter-core
@@ -51,7 +49,6 @@ echo "ALL ALL=(root) NOPASSWD: /etc/wsl/wsl-nsenter-core" >/etc/sudoers.d/wsl-ns
 
 cat <<"EOF" | tee /etc/wsl/wsl-nsenter
 #!/bin/sh
-set -e
 if [ -r /var/run/wsl-init.pid ]; then
     parent="$(cat /var/run/wsl-init.pid)"
     pid="$(ps -o pid,ppid,args | awk '$2 == "'"${parent}"'" && $3 ~ /^\/sbin\/init/ { print $1 }')"
