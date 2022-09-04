@@ -8,7 +8,6 @@ apk add openrc
 # WSL中初始进程 "/init" 无法启动 inittab，需要重新执行 "/sbin/init"
 # "/sbin/init" 必须做为初始进程 (PID 1) 运行，使用 namespace 技术
 # 依赖 util-linux 软件包中的 (nsenter,nsenter) 命令实现 namespace
-# 依赖 busybox\coreutils 软件包中的 (nohup) 命令和 & 实现后台运行
 
 apk add util-linux
 
@@ -74,4 +73,5 @@ ln -sf /etc/wsl/wsl-nsenter /etc/profile.d/00-wsl-nsenter.sh
 
 ##############################################################################################
 # 马上生效
-/etc/wsl/wsl-init
+# 依赖 busybox\coreutils 软件包中的 (nohup) 命令和 & 实现后台运行
+nohup /etc/wsl/wsl-init >/dev/null 2>&1 &
