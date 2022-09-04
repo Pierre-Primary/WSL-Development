@@ -14,16 +14,17 @@ apk add util-linux
 
 mkdir -p /etc/wsl
 
+chmod +x /etc/wsl/wsl-init
 cat <<"EOF" | tee /etc/wsl/wsl-init
 #!/bin/sh
-set -eu
 if [ $$ -ne "1" ]; then
-    init_pid="$(ps -o pid,args | awk '$2 ~ /^\/sbin\/init/ { print $1 }')"
-    if [ -n "$init_pid" ]; then
+    {
+        flock -n 5
+        [ $? -eq 1 ] && exit
+        echo $$ >/var/run/wsl-init.pid
+        exec /usr/bin/env -i /usr/bin/unshare --pid --mount-proc --fork --propagation unchanged -- ${0}
         exit
-    fi
-    exec nohup sh -c "echo \$$ >/run/wsl-init.pid; exec /usr/bin/env -i /usr/bin/unshare --pid --mount-proc --fork --propagation unchanged -- ${0}" >/var/log/wsl-init.out 2>&1 &
-    exit
+    } 5<>/var/run/wsl-init.lock
 fi
 exec /sbin/init
 EOF
@@ -51,8 +52,8 @@ echo "ALL ALL=(root) NOPASSWD: /etc/wsl/wsl-nsenter-core" >/etc/sudoers.d/wsl-ns
 cat <<"EOF" | tee /etc/wsl/wsl-nsenter
 #!/bin/sh
 set -e
-if [ -r /run/wsl-init.pid ]; then
-    parent="$(cat /run/wsl-init.pid)"
+if [ -r /var/run/wsl-init.pid ]; then
+    parent="$(cat /var/run/wsl-init.pid)"
     pid="$(ps -o pid,ppid,args | awk '$2 == "'"${parent}"'" && $3 ~ /^\/sbin\/init/ { print $1 }')"
     if [ -n "$pid" ] && [ "$pid" -ne 1 ]; then
         if [ "$USER" == "root" ]; then
