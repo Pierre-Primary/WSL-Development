@@ -3,17 +3,37 @@ set -ex
 
 cd "$(dirname "$0")"
 
-# 安装 openrc
-./setup-openrc.sh
+# 查看配置是否生效
+# SELECT  @@key_buffer_size  / (1024 * 1024) ;
+# SELECT  @@query_cache_size  / (1024 * 1024) ;
+# SELECT  @@query_cache_limit / (1024 * 1024) ;
+# SELECT  @@innodb_buffer_pool_size  / (1024 * 1024) ;
+# SELECT  @@innodb_log_buffer_size  / (1024 * 1024) ;
+# SELECT  @@max_connections ;
+# SELECT  @@read_buffer_size  / 1024 ;
+# SELECT  @@read_rnd_buffer_size  / 1024 ;
+# SELECT  @@sort_buffer_size  / 1024  ;
+# SELECT  @@join_buffer_size  / 1024  ;
+# SELECT  @@thread_stack  / 1024  ;
+# SELECT  @@binlog_cache_size  / 1024  ;
+# SELECT  @@tmp_table_size  / 1024  ;
 
 # 安装服务
-apk add mariadb
+install_service() {
 
-# 初始化
-/etc/init.d/mariadb setup
+    type /usr/bin/mariadbd >/dev/null && return
 
-# 内存限制，小内存机器专用
-cat <<EOF | tee /etc/my.cnf.d/limit_mem.cnf
+    # 安装 openrc
+    ./setup-openrc.sh
+
+    # 安装服务
+    apk add mariadb
+
+    # 初始化
+    /etc/init.d/mariadb setup
+
+    # 内存限制，小内存机器专用
+    cat <<EOF | tee /etc/my.cnf.d/limit_mem.cnf
 [mysqld]
 performance_schema = off
 key_buffer_size = 16M
@@ -30,24 +50,15 @@ join_buffer_size = 128K
 # binlog_cache_size = 16K
 tmp_table_size = 4M
 EOF
-# 查看配置是否生效
-# SELECT  @@key_buffer_size  / (1024 * 1024) ;
-# SELECT  @@query_cache_size  / (1024 * 1024) ;
-# SELECT  @@query_cache_limit / (1024 * 1024) ;
-# SELECT  @@innodb_buffer_pool_size  / (1024 * 1024) ;
-# SELECT  @@innodb_log_buffer_size  / (1024 * 1024) ;
-# SELECT  @@max_connections ;
-# SELECT  @@read_buffer_size  / 1024 ;
-# SELECT  @@read_rnd_buffer_size  / 1024 ;
-# SELECT  @@sort_buffer_size  / 1024  ;
-# SELECT  @@join_buffer_size  / 1024  ;
-# SELECT  @@thread_stack  / 1024  ;
-# SELECT  @@binlog_cache_size  / 1024  ;
-# SELECT  @@tmp_table_size  / 1024  ;
-
-# 启动
-rc-update add mariadb default
-rc-service mariadb start
+    # 启动
+    rc-update add mariadb default
+    ./setup-openrc.sh wait rc-service mariadb start
+}
 
 # 安装客户端
-apk add mariadb-client
+install_cli() {
+    apk add mariadb-client
+}
+
+install_service
+install_cli
