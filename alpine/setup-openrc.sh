@@ -1,5 +1,34 @@
 #!/bin/sh
+
 set -ex
+
+cd "$(dirname "$0")"
+
+#########################
+#        Utils        #
+#########################
+
+wait() {
+    while true; do
+        pid="$(ps -o pid,args | awk '$2 ~ /^\/sbin\/init/ { print $1 }')"
+        [ -n "$pid" ] && break
+        sleep 0.1
+    done
+    /usr/bin/nsenter --pid --mount --target="$pid" -- "$@"
+}
+
+if [ "$1" = "wait" ]; then
+    shift
+    wait "$@"
+    exit
+
+fi
+
+#########################
+#        Install        #
+#########################
+
+type /usr/bin/openrc >/dev/null && return
 
 apk add openrc
 
