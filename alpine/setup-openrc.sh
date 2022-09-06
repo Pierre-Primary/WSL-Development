@@ -14,7 +14,7 @@ wait() {
         [ -n "$pid" ] && break
         sleep 0.1
     done
-    /usr/bin/nsenter --pid --mount --target="$pid" -- "$@"
+    nsenter --pid --mount --target="$pid" -- "$@"
 }
 
 if [ "$1" = "wait" ]; then
@@ -68,7 +68,7 @@ EOF
 
 cat <<"EOF" | tee /etc/wsl/wsl-nsenter-core
 #!/bin/sh
-exec /usr/bin/nsenter --pid --mount --target="$1" --wdns="$(pwd)" -- su "${2:-root}"
+exec /usr/bin/env -i /usr/bin/nsenter --pid --mount --target="$1" --wdns="$(pwd)" -- /bin/su "${2:-root}"
 EOF
 chmod +x /etc/wsl/wsl-nsenter-core
 
