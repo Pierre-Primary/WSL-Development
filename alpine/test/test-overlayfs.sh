@@ -1,25 +1,29 @@
 #! /bin/sh
 set -x
 
-cd /
+# cd /
 
 apk add util-linux
 apk add openrc
 
 # 创建隔离环境
-/usr/bin/env -i unshare -mupf --kill-child=SIGTERM --propagation=unchanged -- sh -c "
-mkdir -p /overlay/upper /overlay/work /rom
+/usr/bin/env -i unshare -mupf --propagation=unchanged -- sh -c "
+mkdir -p /rom
+mkdir -p /overlay/upper /overlay/work
 mount -t overlay overlay /rom -o lowerdir=/,upperdir=/overlay/upper,workdir=/overlay/work
-mount -t proc proc /rom/proc -o rw,nosuid,nodev,noexec,noatime
+
+mount -t proc proc /rom/proc
 mount --rbind /dev /rom/dev
 mount --rbind /sys /rom/sys
+mount --rbind /mnt /rom/mnt
+
 mount -t tmpfs tmpfs /rom/tmp
 mount -t tmpfs tmpfs /rom/run
 
 cd /rom
-mkdir -p old-root
-pivot_root . old-root
-umount -l /old-root && rm -rf /old-root
+mkdir -p parent-rom
+pivot_root . parent-rom
+umount -l /parent-rom && rm -rf /parent-rom
 exec /sbin/init
 " >/dev/null 2>&1 &
 
@@ -32,4 +36,4 @@ while true; do
     sleep 0.1
 done
 
-exec /usr/bin/env -i nsenter -a -t "$pid"
+exec nsenter -a -t "$pid" --wdns="$(pwd)"
