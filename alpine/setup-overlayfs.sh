@@ -10,7 +10,7 @@ cd "$(dirname "$0")"
 
 wait() {
     while true; do
-        pid="$(ps -o pid,args | awk '$2 ~ /^\/sbin\/init/ { print $1 }')"
+        pid="$(ps -o pid,args | awk '$2 ~ /^\/sbin\/init/ { print $1; exit }')"
         [ -n "$pid" ] && break
         sleep 0.1
     done
@@ -28,7 +28,7 @@ fi
 #        Install        #
 #########################
 
-type /usr/bin/openrc >/dev/null && return
+type /usr/bin/openrc >/dev/null && exit 0
 
 apk add openrc
 
@@ -48,7 +48,9 @@ if [ $$ -ne "1" ]; then
     {
         flock -n 5
         [ $? -eq 1 ] && exit
-        echo $$ >/var/run/wsl-init.pid
+        pid="$(ps -o pid,args | awk '$2 ~ /^\/sbin\/init/ { print $1; exit }')"
+        [ -n "$pid" ] && exit
+        echo $$ >/var/run/wsl-init.pid        
         exec /usr/bin/env -i /usr/bin/unshare -mupf --propagation=unchanged -- ${0}
         exit
     } 5<>/var/run/wsl-init.lock
@@ -84,7 +86,7 @@ EOF
 
 cat <<"EOF" | tee /etc/wsl/wsl-nsenter-core
 #!/bin/sh
-exec /usr/bin/nsenter -a -t "$1" --wdns="$(pwd)" -- /bin/su "${2:-root}"
+exec /usr/bin/nsenter -a -t "$1" -- /bin/su - "${2:-root}"
 EOF
 chmod +x /etc/wsl/wsl-nsenter-core
 
@@ -93,28 +95,34 @@ echo "ALL ALL=(root) NOPASSWD: /etc/wsl/wsl-nsenter-core" >/etc/sudoers.d/wsl-ns
 
 cat <<"EOF" | tee /etc/wsl/wsl-nsenter
 #!/bin/sh
+ENV_HOLD="$HOME/.wsl-nsenter.env"
+ENV_HOLD_C="/overlay/upper$ENV_HOLD"
 if [ -r /var/run/wsl-init.pid ]; then
     parent="$(cat /var/run/wsl-init.pid)"
-    pid="$(ps -o pid,ppid,args | awk '$2 == "'"${parent}"'" && $3 ~ /^\/sbin\/init/ { print $1 }')"
+    pid="$(ps -o pid,ppid,args | awk '$2 == "'"${parent}"'" && $3 ~ /^\/sbin\/init/ { print $1; exit }')"
     if [ -n "$pid" ] && [ "$pid" -ne 1 ]; then
+        rm -f "$ENV_HOLD"
+        rm -f "$ENV_HOLD_C"
+        export > "$ENV_HOLD"
         if [ "$USER" == "root" ]; then
             exec /etc/wsl/wsl-nsenter-core "$pid"
-        elif type -t /usr/bin/sudo >/dev/null; then        
-            [ -f "$HOME/.wsl-nsenter.env" ] && rm "$HOME/.wsl-nsenter.env"
-            export > "$HOME/.wsl-nsenter.env"
+        elif type -t /usr/bin/sudo >/dev/null; then
             exec sudo /etc/wsl/wsl-nsenter-core "$pid" "$USER"
         fi
+        rm -f "$ENV_HOLD"
     fi
 fi
-if [ -f "$HOME/.wsl-nsenter.env" ]; then
-  set -a
-  source "$HOME/.wsl-nsenter.env"
-  set +a
-  rm "$HOME/.wsl-nsenter.env"
+if [ -f "$ENV_HOLD" ]; then
+    set -a
+    source "$ENV_HOLD"
+    set +a
+    rm -f "$ENV_HOLD"
+    [ -n "$PWD" ] && cd $PWD
+    unset OLDPWD
 fi
 EOF
 chmod +x /etc/wsl/wsl-nsenter
-ln -sf /etc/wsl/wsl-nsenter /etc/profile.d/00-wsl-nsenter.sh
+ln -sf /etc/wsl/wsl-nsenter /etc/profile.d/zzz-wsl-nsenter.sh
 
 ##############################################################################################
 # 马上生效
