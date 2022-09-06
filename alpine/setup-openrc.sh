@@ -70,7 +70,7 @@ EOF
 
 cat <<"EOF" | tee /etc/wsl/wsl-nsenter-core
 #!/bin/sh
-exec /usr/bin/nsenter -a -t "$1" -- /bin/su - "${2:-root}"
+exec /usr/bin/nsenter -a -t "$1" --wdns="$(pwd)" ${2:+-- /bin/su - $2}
 EOF
 chmod +x /etc/wsl/wsl-nsenter-core
 
@@ -84,10 +84,10 @@ if [ -r /var/run/wsl-init.pid ]; then
     parent="$(cat /var/run/wsl-init.pid)"
     pid="$(ps -o pid,ppid,args | awk '$2 == "'"${parent}"'" && $3 ~ /^\/sbin\/init/ { print $1; exit }')"
     if [ -n "$pid" ] && [ "$pid" -ne 1 ]; then
-        export > "$ENV_HOLD"
         if [ "$USER" == "root" ]; then
             exec /etc/wsl/wsl-nsenter-core "$pid"
         elif type -t /usr/bin/sudo >/dev/null; then
+            export > "$ENV_HOLD"
             exec sudo /etc/wsl/wsl-nsenter-core "$pid" "$USER"
         fi
         rm -f "$ENV_HOLD"
