@@ -103,4 +103,4 @@ ln -sf /etc/wsl/wsl-nsenter /etc/profile.d/00-wsl-nsenter.sh
 ##############################################################################################
 # 马上生效
 # 依赖 busybox\coreutils 软件包中的 (nohup) 命令和 & 实现后台运行
-nohup /etc/wsl/wsl-init >/dev/null 2>&1 &
+/etc/wsl/wsl-init >/dev/null 2>&1 &
