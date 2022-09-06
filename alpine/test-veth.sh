@@ -27,12 +27,15 @@ ip netns exec n0 ip addr add dev veth0.0 192.168.10.2/24
 ip netns exec n0 ip link set veth0.0 up
 ip netns exec n0 ip route add default via 192.168.10.1 dev veth0.0
 
-nohup ip netns exec n0 unshare --pid --mount-proc --fork --propagation unchanged -- sleep 3600 >/dev/null 2>&1 &
+ip netns exec n0 /usr/bin/env -i unshare -mupf --mount-proc --propagation=unchanged -- sleep 3600 >/dev/null 2>&1 &
 
+times=0
 while true; do
     pid=$(ps -o pid,args | awk '$2 ~ /^sleep/ { print $1 }')
     [ -n "$pid" ] && break
+    times=$((times + 1))
+    [ "$times" -ge 10 ] && exit 1
     sleep 0.1
 done
 
-exec nsenter --pid --net --mount --target="$pid" --wdns="$(pwd)" -- su
+exec /usr/bin/env -i nsenter -a -t "$pid"
