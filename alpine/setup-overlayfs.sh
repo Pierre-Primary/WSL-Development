@@ -1,128 +1,133 @@
-#!/bin/sh
-
+#!/usr/bin/env sh
 set -ex
 
-cd "$(dirname "$0")"
+apk add openrc util-linux procps sudo
 
-#########################
-#        Utils        #
-#########################
+echo '%wheel ALL=(ALL) ALL' | tee /etc/sudoers.d/wheel >/dev/null
 
-wait() {
-    while true; do
-        pid="$(ps -o pid,args | awk '$2 ~ /^\/sbin\/init/ { print $1; exit }')"
-        [ -n "$pid" ] && break
-        sleep 0.1
-    done
-    nsenter --pid --mount --target="$pid" -- "$@"
-}
+rm -rf /etc/wsl-init
+mkdir -p /etc/wsl-init
 
-if [ "$1" = "wait" ]; then
-    shift
-    wait "$@"
+tee /etc/wsl-init/boot >/dev/null <<"EOF"
+#!/usr/bin/env sh
+
+WSL_INIT_CMD="/sbin/init"
+
+if [ "$1" = "-d" ]; then
+    exec nohup "$0" >/dev/null 2>&1 &
     exit
-
 fi
 
-#########################
-#        Install        #
-#########################
+# 判断当前进程是否为 Boot 进程（进程号为 1）
+# systemd只能在 Boot 进程上运行
+if [ $$ -eq "1" ]; then
+    mkdir -p /rom
+    mkdir -p /overlay/upper /overlay/work
+    mount -t overlay overlay /rom -o lowerdir=/,upperdir=/overlay/upper,workdir=/overlay/work
 
-type /usr/bin/openrc >/dev/null && exit 0
+    mount -t proc proc /rom/proc
+    mount --rbind /dev /rom/dev
+    mount --rbind /sys /rom/sys
+    mount --rbind /mnt /rom/mnt
+    mount --rbind /root /rom/root
+    mount --rbind /home /rom/home
+    mount --rbind /etc/wsl-init /rom/etc/wsl-init
 
-apk add openrc
+    mount -t tmpfs tmpfs /rom/tmp
+    mount -t tmpfs tmpfs /rom/run
 
-##############################################################################################
-# openrc 依靠 inittab
-# WSL中初始进程 "/init" 无法启动 inittab，需要重新执行 "/sbin/init"
-# "/sbin/init" 必须做为初始进程 (PID 1) 运行，使用 namespace 技术
-# 依赖 util-linux 软件包中的 (nsenter,nsenter) 命令实现 namespace
-
-apk add util-linux
-
-mkdir -p /etc/wsl
-
-cat <<"EOF" | tee /etc/wsl/wsl-init
-#!/bin/sh
-if [ $$ -ne "1" ]; then
+    cd /rom
+    mkdir -p parent-rom
+    pivot_root . parent-rom
+    umount -l /parent-rom && rm -rf /parent-rom
+    exec $WSL_INIT_CMD
+else
+    mkdir -p /var/lock
     {
+        # 获取锁，避免多进程同步执行
         flock -n 5
-        [ $? -eq 1 ] && exit
-        pid="$(ps -o pid,args | awk '$2 ~ /^\/sbin\/init/ { print $1; exit }')"
-        [ -n "$pid" ] && exit
-        echo $$ >/var/run/wsl-init.pid        
-        exec /usr/bin/env -i /usr/bin/unshare -mupf --propagation=unchanged -- ${0}
-        exit
-    } 5<>/var/run/wsl-init.lock
+        WSL_INIT_HAS_LOCK=$?
+        # 判断 systemd 进程是否存在
+        WSL_INIT_PID=$(ps -eo pid,args | awk '$2 == "'"$WSL_INIT_CMD"'" { print $1; exit }')
+        # systemd 进程已存在，成功退出
+        [ -n "$WSL_INIT_PID" ] && exit
+        # 获取锁失败，失败退出
+        [ $WSL_INIT_HAS_LOCK -eq 1 ] && exit 1
+        mkdir -p /var/run
+        # 当前进程不是 Boot 进程，使用 unshare 开启新的 mount namespace 和 pid namespace。
+        # 若 unshare 命令不存在，请先执行 "apt install util-linux" 安装
+        # 使用 /usr/bin/env -i 开启一个无环境变量的新环境，模拟干净的 Boot
+        exec /usr/bin/env -i /usr/bin/unshare -mupf --mount-proc -- "$0"
+    } 5<>/var/lock/wsl-init.lock
 fi
-mkdir -p /rom
-mkdir -p /overlay/upper /overlay/work
-mount -t overlay overlay /rom -o lowerdir=/,upperdir=/overlay/upper,workdir=/overlay/work
-
-mount -t proc proc /rom/proc
-mount --rbind /dev /rom/dev
-mount --rbind /sys /rom/sys
-mount --rbind /mnt /rom/mnt
-
-mount -t tmpfs tmpfs /rom/tmp
-mount -t tmpfs tmpfs /rom/run
-
-cd /rom
-mkdir -p parent-rom
-pivot_root . parent-rom
-umount -l /parent-rom && rm -rf /parent-rom
-exec /sbin/init
 EOF
-chmod +x /etc/wsl/wsl-init
+chmod +x /etc/wsl-init/boot
 
-# wel.conf  boot.command
-cat <<EOF | tee /etc/wsl.conf
-[boot]
-command = /etc/wsl/wsl-init
+tee /etc/wsl-init/enter-core >/dev/null <<"EOF"
+#!/usr/bin/env sh
+exec /usr/bin/env -i /usr/bin/nsenter -a -t "$1" -- su - $SUDO_USER
 EOF
+chmod +x /etc/wsl-init/enter-core
 
-##############################################################################################
-# shell 会话自动进入 namespace
+tee /etc/wsl-init/enter >/dev/null <<"EOF"
+#!/usr/bin/env sh
 
-cat <<"EOF" | tee /etc/wsl/wsl-nsenter-core
-#!/bin/sh
-exec /usr/bin/nsenter -a -t "$1" --wdns="$(pwd)" ${2:+-- /bin/su - $2}
-EOF
-chmod +x /etc/wsl/wsl-nsenter-core
+WSL_INIT_CMD="/sbin/init"
 
-apk add sudo
-echo "ALL ALL=(root) NOPASSWD: /etc/wsl/wsl-nsenter-core" >/etc/sudoers.d/wsl-nsenter
-
-cat <<"EOF" | tee /etc/wsl/wsl-nsenter
-#!/bin/sh
-ENV_HOLD="$HOME/.wsl-nsenter.env"
-ENV_HOLD_C="/overlay/upper$ENV_HOLD"
-if [ -r /var/run/wsl-init.pid ]; then
-    parent="$(cat /var/run/wsl-init.pid)"
-    pid="$(ps -o pid,ppid,args | awk '$2 == "'"${parent}"'" && $3 ~ /^\/sbin\/init/ { print $1; exit }')"
-    if [ -n "$pid" ] && [ "$pid" -ne 1 ]; then
-        if [ "$USER" == "root" ]; then
-            exec /etc/wsl/wsl-nsenter-core "$pid"
-        elif type -t /usr/bin/sudo >/dev/null; then
-            rm -f "$ENV_HOLD_C"
-            export > "$ENV_HOLD"
-            exec sudo /etc/wsl/wsl-nsenter-core "$pid" "$USER"
-        fi
+WSL_INIT_PID=$(ps -eo pid,args | awk '$2 == "'"$WSL_INIT_CMD"'" { print $1; exit }')
+if [ -z "$WSL_INIT_PID" ]; then
+    sudo /etc/wsl-init/boot -d
+    # 循环获取 systemd 进程 id
+    # 等两秒
+    WSL_INIT_WAIT_COUNT=20
+    WSL_INIT_WAIT_TIME=0.1
+    WSL_INIT_WAIT_TIMES=0
+    while [ $WSL_INIT_WAIT_TIMES -lt $WSL_INIT_WAIT_COUNT ]; do
+        WSL_INIT_PID=$(ps -eo pid,args | awk '$2 == "'"$WSL_INIT_CMD"'" { print $1; exit }')
+        [ -n "$WSL_INIT_PID" ] && break
+        WSL_INIT_WAIT_TIMES=$((WSL_INIT_WAIT_TIMES + 1))
+        sleep $WSL_INIT_WAIT_TIME
+    done
+    # PID 为空表示 systemd 没有启动
+    if [ -z "$WSL_INIT_PID" ]; then
+        echo "systemd is not started"
+        exit
     fi
 fi
-if [ -f "$ENV_HOLD" ]; then
+
+if [ $# -eq 0 ]; then
+    # 保存环境变量
+    export >"$HOME/.wsl-init.env"
+    # 进入 namespace
+    # 默认允许所有用户切换 namespace。详情查看 /etc/sudoers.d/wsl-init
+    exec sudo /etc/wsl-init/enter-core "$WSL_INIT_PID"
+else
+    # 在 namespace 中执行命令
+    # 避免普通用户通过此方式执行危险命令，不默认提供 sudo 权限
+    exec /usr/bin/nsenter -a -t "$WSL_INIT_PID" --wd="$(pwd)" -- /bin/sh -c "$*"
+fi
+EOF
+chmod +x /etc/wsl-init/enter
+
+tee /etc/wsl-init/start >/dev/null <<"EOF"
+WSL_INIT_CMD="/sbin/init"
+WSL_INIT_PID=$(ps -eo pid,args | awk '$2 == "'"$WSL_INIT_CMD"'" { print $1; exit }')
+if [ -z "$WSL_INIT_PID" ] || [ "$WSL_INIT_PID" -ne 1 ]; then
+    exec /etc/wsl-init/enter
+elif [ -r "$HOME/.wsl-init.env" ]; then
     set -a
-    source "$ENV_HOLD"
+    . "$HOME/.wsl-init.env"
     set +a
-    rm -f "$ENV_HOLD"
+    rm -f "$HOME/.wsl-init.env"
     [ -n "$PWD" ] && cd $PWD
     unset OLDPWD
 fi
 EOF
-chmod +x /etc/wsl/wsl-nsenter
-ln -sf /etc/wsl/wsl-nsenter /etc/profile.d/zzz-wsl-nsenter.sh
+chmod +x /etc/wsl-init/start
+ln -sf /etc/wsl-init/start /etc/profile.d/zzz-wsl-init-start.sh
 
-##############################################################################################
-# 马上生效
-# 依赖 busybox\coreutils 软件包中的 (nohup) 命令和 & 实现后台运行
-/etc/wsl/wsl-init >/dev/null 2>&1 &
+tee /etc/wsl-init/sudoer >/dev/null <<EOF
+ALL ALL=(root) NOPASSWD: /etc/wsl-init/boot
+ALL ALL=(root) NOPASSWD: /etc/wsl-init/enter-core
+EOF
+ln -sf /etc/wsl-init/sudoer /etc/sudoers.d/wsl-init
