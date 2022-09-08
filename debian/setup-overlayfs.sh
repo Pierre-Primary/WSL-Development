@@ -72,7 +72,7 @@ else
         # 当前进程不是 Boot 进程，使用 unshare 开启新的 mount namespace 和 pid namespace。
         # 若 unshare 命令不存在，请先执行 "apt install util-linux" 安装
         # 使用 /usr/bin/env -i 开启一个无环境变量的新环境，模拟干净的 Boot
-        exec /usr/bin/env -i /usr/bin/unshare -mupf --mount-proc -- "$0"
+        exec /usr/bin/env -i /usr/bin/unshare -mpif --mount-proc -- "$0"
     } 5<>/var/lock/wsl-init.lock
 fi
 EOF
