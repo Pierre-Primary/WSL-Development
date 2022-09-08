@@ -85,7 +85,7 @@ if [ $# -eq 0 ]; then
 else
     # 在 namespace 中执行命令
     # 避免普通用户通过此方式执行危险命令，不默认提供 sudo 权限
-    exec /usr/bin/nsenter -a -t "$WSL_INIT_PID" --wd="$(pwd)" -- /bin/sh -c "exec $*"
+    exec /usr/bin/nsenter -a -t "$WSL_INIT_PID" --wd="$(pwd)" -- /bin/sh -c "$*"
 fi
 EOF
 chmod +x /etc/wsl-init/enter
