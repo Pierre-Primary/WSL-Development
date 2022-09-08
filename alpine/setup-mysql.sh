@@ -52,7 +52,7 @@ tmp_table_size = 4M
 EOF
     # 启动
     rc-update add mariadb default
-    ./setup-openrc.sh wait rc-service mariadb start
+    /etc/wsl-init/enter rc-service mariadb start
 }
 
 # 安装客户端
