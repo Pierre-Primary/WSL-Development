@@ -1,6 +1,12 @@
 #!/bin/sh
 set -ex
 
+if [ "$1" != "--isns" ]; then
+    ./setup-openrc.sh
+    /etc/wsl-init/enter "$0 --isns"
+    exit
+fi
+
 cd "$(dirname "$0")"
 
 # 查看配置是否生效
@@ -22,9 +28,6 @@ cd "$(dirname "$0")"
 install_service() {
 
     type /usr/bin/mariadbd >/dev/null && return
-
-    # 安装 openrc
-    ./setup-openrc.sh
 
     # 安装服务
     apk add mariadb
@@ -52,7 +55,7 @@ tmp_table_size = 4M
 EOF
     # 启动
     rc-update add mariadb default
-    /etc/wsl-init/enter rc-service mariadb start
+    rc-service mariadb start
 }
 
 # 安装客户端
