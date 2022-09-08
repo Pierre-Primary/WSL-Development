@@ -1,9 +1,9 @@
 #!/bin/sh
 set -ex
 
-if [ "$1" != "--isns" ]; then
+if [ "$1" != "--enter" ]; then
     ./setup-openrc.sh
-    /etc/wsl-init/enter "$0 --isns"
+    /etc/wsl-init/enter "$0 --enter"
     exit
 fi
 
