@@ -7,6 +7,8 @@ SCRIPT_NAME=./"$(basename "$0")"
 
 IMG_FILE=./output/alpine-3.16-docker.img
 
+apk add util-linux
+
 if [ "$1" = "--enter" ]; then
     mount -t proc proc /rom/proc
 
@@ -43,11 +45,11 @@ elif [ "$1" = "--init" ]; then
     mount -o loop -t ext4 $IMG_FILE /overlay/lower
     mount -t overlay overlay /rom -o lowerdir=/overlay/over:/overlay/lower,upperdir=/overlay/upper,workdir=/overlay/work
 
-    exec /usr/bin/env -i unshare -mupif --mount-proc --propagation=unchanged -- "$SCRIPT_NAME" --enter
+    exec /usr/bin/env -i unshare -muipf --mount-proc --propagation=unchanged -- "$SCRIPT_NAME" --enter
 else
     pid=$(ps -eo pid,args | awk '$2 ~ /^\/sbin\/init/ { print $1 }')
     if [ -z "$pid" ]; then
-        /usr/bin/env -i unshare -mupif --mount-proc --propagation=unchanged -- "$SCRIPT_NAME" --init &
+        /usr/bin/env -i unshare -muipf --mount-proc --propagation=unchanged -- "$SCRIPT_NAME" --init &
         set +x
         times=0
         while [ $times -lt 10 ]; do
