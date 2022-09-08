@@ -1,12 +1,14 @@
 #!/usr/bin/env sh
 set -ex
 
-apk add openrc util-linux procps sudo
-
-echo '%wheel ALL=(ALL) ALL' | tee /etc/sudoers.d/wheel >/dev/null
+[ "$1" != "-f" ] && [ -e /etc/wsl-init ] && exit
 
 rm -rf /etc/wsl-init
 mkdir -p /etc/wsl-init
+
+apk add openrc util-linux procps sudo
+
+echo '%wheel ALL=(ALL) ALL' | tee /etc/sudoers.d/wheel >/dev/null
 
 tee /etc/wsl-init/boot >/dev/null <<"EOF"
 #!/usr/bin/env sh
