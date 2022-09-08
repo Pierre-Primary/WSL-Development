@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -ex
 
+cd "$(dirname "$0")"
+
+./setup-systemd.sh
+
 apt install curl gpg lsb-release
 
 mkdir -p /etc/apt/keyrings
@@ -12,5 +16,5 @@ apt-get update
 apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin
 
 sed -ri '/^ExecStart=\/usr\/bin\/dockerd/c ExecStart=/usr/bin/dockerd -H fd:// -H tcp://0.0.0.0:2375 --containerd=/run/containerd/containerd.sock' /lib/systemd/system/docker.service
-systemctl daemon-reload
-systemctl restart docker.service
+
+/etc/wsl-init/enter "sleep 1; systemctl daemon-reload; systemctl restart docker.service"
