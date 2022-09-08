@@ -5,8 +5,7 @@ cd "$(dirname "$0")"
 
 SCRIPT_NAME=./"$(basename "$0")"
 
-apk add util-linux
-apk add openrc
+apk add openrc util-linux
 
 # 创建隔离环境
 if [ "$1" = "--enter" ]; then
@@ -35,11 +34,11 @@ elif [ "$1" = "--init" ]; then
     mount --rbind / /overlay/lower
     mount -t overlay overlay /rom -o lowerdir=/overlay/lower,upperdir=/overlay/upper,workdir=/overlay/work
 
-    exec /usr/bin/env -i unshare -mupif --mount-proc --propagation=unchanged -- "$SCRIPT_NAME" --enter
+    exec /usr/bin/env -i unshare -muipf --mount-proc --propagation=unchanged -- "$SCRIPT_NAME" --enter
 else
     pid=$(ps -eo pid,args | awk '$2 ~ /^\/sbin\/init/ { print $1 }')
     if [ -z "$pid" ]; then
-        /usr/bin/env -i unshare -mupif --mount-proc --propagation=unchanged -- "$SCRIPT_NAME" --init &
+        /usr/bin/env -i unshare -muipf --mount-proc --propagation=unchanged -- "$SCRIPT_NAME" --init &
         set +x
         times=0
         while [ $times -lt 10 ]; do
