@@ -23,25 +23,31 @@ fi
 # 判断当前进程是否为 Boot 进程（进程号为 1）
 # systemd只能在 Boot 进程上运行
 if [ $$ -eq "1" ]; then
-    mkdir -p /rom
-    mkdir -p /overlay/upper /overlay/work
-    mount -t overlay overlay /rom -o lowerdir=/,upperdir=/overlay/upper,workdir=/overlay/work
+    rm -rf /overlay
 
+    mkdir -p /rom
+    mkdir -p /overlay/lower /overlay/upper /overlay/work
+
+    mount --rbind / /overlay/lower
+    mount -t overlay overlay /rom -o lowerdir=/overlay/lower,upperdir=/overlay/upper,workdir=/overlay/work
     mount -t proc proc /rom/proc
-    mount --rbind /dev /rom/dev
-    mount --rbind /sys /rom/sys
-    mount --rbind /run /rom/run
-    mount --rbind /tmp /rom/tmp
-    mount --rbind /mnt /rom/mnt
-    mount --rbind /root /rom/root
-    mount --rbind /home /rom/home
-    mount --rbind /etc/wsl-init /rom/etc/wsl-init
-    mount --rbind /overlay /rom/overlay
 
     cd /rom
-    mkdir -p parent-rom
-    pivot_root . parent-rom
-    umount -l /parent-rom && rm -rf /parent-rom
+    mkdir -p parent
+    pivot_root . parent
+
+    mount --rbind /parent/dev /dev
+    mount --rbind /parent/sys /sys
+    mount --rbind /parent/run /run
+    mount --rbind /parent/tmp /tmp
+    mount --rbind /parent/mnt /mnt
+    mount --rbind /parent/root /root
+    mount --rbind /parent/home /home
+    mount --rbind /parent/etc/wsl-init /etc/wsl-init
+    mount --rbind /parent/overlay /overlay
+
+    umount -l /parent && rm -rf /parent
+
     exec $WSL_INIT_CMD
 else
     mkdir -p /var/lock
