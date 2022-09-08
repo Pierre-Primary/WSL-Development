@@ -1,12 +1,14 @@
 #!/usr/bin/env sh
 set -ex
 
-apt install systemd daemonize procps sudo
-
-echo '%sudo ALL=(ALL) ALL' | tee /etc/sudoers.d/sudo >/dev/null
+[ "$1" != "-f" ] && [ -e /etc/wsl-init ] && exit
 
 rm -rf /etc/wsl-init
 mkdir -p /etc/wsl-init
+
+apt install -y systemd daemonize procps sudo
+
+echo '%sudo ALL=(ALL) ALL' | tee /etc/sudoers.d/sudo >/dev/null
 
 tee /etc/wsl-init/boot >/dev/null <<"EOF"
 #!/usr/bin/env sh
