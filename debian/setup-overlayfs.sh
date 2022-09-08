@@ -35,15 +35,14 @@ if [ $$ -eq "1" ]; then
     mount -t overlay overlay /rom -o lowerdir=/,upperdir=/overlay/upper,workdir=/overlay/work
 
     mount -t proc proc /rom/proc
+    mount -t tmpfs tmpfs /rom/tmp
     mount --rbind /dev /rom/dev
     mount --rbind /sys /rom/sys
+    mount --rbind /run /rom/run
     mount --rbind /mnt /rom/mnt
     mount --rbind /root /rom/root
     mount --rbind /home /rom/home
     mount --rbind /etc/wsl-init /rom/etc/wsl-init
-
-    mount -t tmpfs tmpfs /rom/tmp
-    mount -t tmpfs tmpfs /rom/run
 
     cd /rom
     mkdir -p parent-rom
