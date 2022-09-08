@@ -3,9 +3,9 @@ set -ex
 
 cd "$(dirname "$0")"
 
-if [ "$1" != "--isns" ]; then
+if [ "$1" != "--enter" ]; then
     ./setup-systemd.sh
-    /etc/wsl-init/enter "sleep 0.5; $0 --isns"
+    /etc/wsl-init/enter "sleep 0.5; $0 --enter"
     exit
 fi
 
