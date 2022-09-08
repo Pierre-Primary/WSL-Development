@@ -28,7 +28,7 @@ DOCKER_OPTS="-H unix:///var/run/docker.sock -H tcp://0.0.0.0:2375"
 EOF
     # 启动
     rc-update add docker default
-    ./setup-openrc.sh wait service docker start
+    /etc/wsl-init/enter rc-service docker start
 }
 
 # 安装客户端
