@@ -1,15 +1,18 @@
 #!/bin/sh
 set -ex
 
+if [ "$1" != "--isns" ]; then
+    ./setup-openrc.sh
+    /etc/wsl-init/enter "$0 --isns"
+    exit
+fi
+
 cd "$(dirname "$0")"
 
 # 安装服务
 install_service() {
 
     type /usr/bin/dockerd >/dev/null && return
-
-    # 安装 openrc
-    ./setup-openrc.sh
 
     # 安装服务
     apk add docker
@@ -28,7 +31,7 @@ DOCKER_OPTS="-H unix:///var/run/docker.sock -H tcp://0.0.0.0:2375"
 EOF
     # 启动
     rc-update add docker default
-    /etc/wsl-init/enter rc-service docker start
+    rc-service docker start
 }
 
 # 安装客户端
