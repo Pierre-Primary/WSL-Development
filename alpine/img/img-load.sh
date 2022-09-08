@@ -3,6 +3,8 @@ set -ex
 
 cd "$(dirname "$0")"
 
+SCRIPT_NAME=./"$(basename "$0")"
+
 IMG_FILE=./output/alpine-3.16-docker.img
 
 if [ "$1" = "--enter" ]; then
@@ -15,6 +17,7 @@ if [ "$1" = "--enter" ]; then
     mount --rbind /parent/dev /dev
     mount --rbind /parent/sys /sys
     mount --rbind /parent/mnt /mnt
+    mount --rbind /parent/overlay /overlay
 
     mount -t tmpfs tmpfs /run
     mount -t tmpfs tmpfs /tmp
@@ -34,16 +37,17 @@ elif [ "$1" = "--init" ]; then
 
     mkdir -p /rom
     mkdir -p /overlay/lower /overlay/upper /overlay/work
-    mkdir -p /overlay/over/etc && touch /overlay/over/etc/hosts /overlay/over/etc/resolv.conf
+    mkdir -p /overlay/over/etc /overlay/over/overlay
+    touch /overlay/over/etc/hosts /overlay/over/etc/resolv.conf
 
     mount -o loop -t ext4 $IMG_FILE /overlay/lower
     mount -t overlay overlay /rom -o lowerdir=/overlay/over:/overlay/lower,upperdir=/overlay/upper,workdir=/overlay/work
 
-    exec /usr/bin/env -i unshare -muipf --mount-proc --propagation=unchanged -- "$0" --enter
+    exec /usr/bin/env -i unshare -muipf --mount-proc --propagation=unchanged -- "$SCRIPT_NAME" --enter
 else
     pid=$(ps -eo pid,args | awk '$2 ~ /^\/sbin\/init/ { print $1 }')
     if [ -z "$pid" ]; then
-        nohup /usr/bin/env -i unshare -muipf --mount-proc --propagation=unchanged -- "$0" --init >/dev/null 2>&1 &
+        /usr/bin/env -i unshare -muipf --mount-proc --propagation=unchanged -- "$SCRIPT_NAME" --init &
         set +x
         times=0
         while [ $times -lt 10 ]; do
