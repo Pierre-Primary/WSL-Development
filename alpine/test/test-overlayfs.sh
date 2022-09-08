@@ -8,32 +8,36 @@ apk add openrc
 
 # 创建隔离环境
 if [ "$1" = "--enter" ]; then
-    PWD_PATH=$(pwd)
+    mount -t proc proc /rom/proc
 
-    mount -t proc proc /rom/root/proc
-
-    cd /rom/root
+    cd /rom
     mkdir -p parent
     pivot_root . parent
 
     mount --rbind /parent/dev /dev
     mount --rbind /parent/sys /sys
+    mount --rbind /parent/run /run
+    mount --rbind /parent/tmp /tmp
     mount --rbind /parent/mnt /mnt
-    umount -l /parent && rm -rf /parent
+    mount --rbind /parent/overlay /overlay
 
-    cd "$PWD_PATH"
+    umount -l /parent && rm -rf /parent
 
     exec /sbin/init
 elif [ "$1" = "--init" ]; then
-    rm -rf /rom
-    mkdir -p /rom/rom /rom/root /rom/over /rom/upper /rom/work
-    mount --rbind / /rom/rom
-    mount -t overlay overlay /rom/root -o lowerdir=/rom/over:/rom/rom,upperdir=/rom/upper,workdir=/rom/work
+    rm -rf /overlay
+
+    mkdir -p /rom
+    mkdir -p /overlay/lower /overlay/upper /overlay/work
+
+    mount --rbind / /overlay/lower
+    mount -t overlay overlay /rom -o lowerdir=/overlay/lower,upperdir=/overlay/upper,workdir=/overlay/work
+
     exec /usr/bin/env -i unshare -muipf --mount-proc --propagation=unchanged -- "$0" --enter
 else
     pid=$(ps -eo pid,args | awk '$2 ~ /^\/sbin\/init/ { print $1 }')
     if [ -z "$pid" ]; then
-        nohup /usr/bin/env -i unshare -muipf --mount-proc --propagation=unchanged -- "$0" --enter >/dev/null 2>&1 &
+        /usr/bin/env -i unshare -muipf --mount-proc --propagation=unchanged -- "$0" --init &
         set +x
         times=0
         while [ $times -lt 10 ]; do
@@ -43,6 +47,7 @@ else
             sleep 1
         done
         set -x
+        [ -z "$pid" ] && exit
     fi
     exec nsenter -a -t "$pid" --wdns="$(pwd)" -- /bin/sh
 fi
