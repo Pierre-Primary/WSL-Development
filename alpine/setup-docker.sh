@@ -1,6 +1,7 @@
 #!/usr/bin/env sh
 set -ex
 
+# 安装并启动 openrc
 if [ "$1" != "--enter" ]; then
     ./setup-openrc.sh
     /etc/wsl-init/enter "$0 --enter"
