@@ -8,8 +8,6 @@ INIT_CMD="/sbin/init"
 
 IMG_FILE=../../img/output/alpine-3.16-docker.img
 
-apt install -y systemd procps
-
 if [ "$1" = "--enter" ]; then
     mount -t proc proc /rom/proc
 
@@ -48,6 +46,8 @@ elif [ "$1" = "--init" ]; then
 
     exec /usr/bin/env -i unshare -muipf --mount-proc --propagation=unchanged -- "$SCRIPT_NAME" --enter
 else
+    apt install -y systemd procps
+
     INIT_PID=$(ps -eo pid,args | awk '$2 == "'"$INIT_CMD"'" { print $1; exit }')
     if [ -z "$INIT_PID" ]; then
         /usr/bin/env -i unshare -muipf --mount-proc --propagation=unchanged -- "$SCRIPT_NAME" --init &
