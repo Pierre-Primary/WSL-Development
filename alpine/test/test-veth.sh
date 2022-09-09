@@ -1,4 +1,4 @@
-#! /bin/sh
+#!/usr/bin/env sh
 set -ex
 
 # https://blog.csdn.net/woshaguayi/article/details/114089866

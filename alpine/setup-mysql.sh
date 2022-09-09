@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env sh
 set -ex
 
 if [ "$1" != "--enter" ]; then
