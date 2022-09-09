@@ -6,8 +6,6 @@ cd "$(dirname "$0")"
 SCRIPT_NAME=./"$(basename "$0")"
 INIT_CMD="/lib/systemd/systemd --system-unit=basic.target"
 
-apt install -y systemd procps
-
 # 创建隔离环境
 if [ "$1" = "--enter" ]; then
     mount -t proc proc /rom/proc
@@ -37,6 +35,8 @@ elif [ "$1" = "--init" ]; then
 
     exec /usr/bin/env -i unshare -muipf --mount-proc --propagation=unchanged -- "$SCRIPT_NAME" --enter
 else
+    apt install -y systemd procps
+
     INIT_PID=$(ps -eo pid,args | awk '$2" "$3 == "'"$INIT_CMD"'" { print $1; exit }')
     if [ -z "$INIT_PID" ]; then
         /usr/bin/env -i unshare -muipf --mount-proc --propagation=unchanged -- "$SCRIPT_NAME" --init &
