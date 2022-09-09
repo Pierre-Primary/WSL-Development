@@ -6,8 +6,6 @@ cd "$(dirname "$0")"
 SCRIPT_NAME=./"$(basename "$0")"
 INIT_CMD="/sbin/init"
 
-apk add openrc util-linux
-
 # 创建隔离环境
 if [ "$1" = "--enter" ]; then
     mount -t proc proc /rom/proc
@@ -37,6 +35,8 @@ elif [ "$1" = "--init" ]; then
 
     exec /usr/bin/env -i unshare -muipf --mount-proc --propagation=unchanged -- "$SCRIPT_NAME" --enter
 else
+    apk add openrc util-linux
+
     INIT_PID=$(ps -eo pid,args | awk '$2 == "'"$INIT_CMD"'" { print $1; exit }')
     if [ -z "$INIT_PID" ]; then
         /usr/bin/env -i unshare -muipf --mount-proc --propagation=unchanged -- "$SCRIPT_NAME" --init &
