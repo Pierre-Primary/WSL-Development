@@ -1,4 +1,5 @@
-#!/usr/bin/env sh
+#!/usr/bin/env ash
+# shellcheck shell=bash
 set -ex
 
 [ "$1" != "-f" ] && [ -e /etc/wsl-init ] && exit

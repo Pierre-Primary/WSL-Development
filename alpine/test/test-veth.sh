@@ -1,4 +1,5 @@
-#!/usr/bin/env sh
+#!/usr/bin/env ash
+# shellcheck shell=bash
 set -ex
 
 # https://blog.csdn.net/woshaguayi/article/details/114089866

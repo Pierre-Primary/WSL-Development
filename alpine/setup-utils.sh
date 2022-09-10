@@ -1,4 +1,5 @@
-#!/usr/bin/env sh
+#!/usr/bin/env ash
+# shellcheck shell=bash
 set -ex
 
 # 和 busybox 相似，基础命令集（echo,ls,cp,mv,rm,mkdir,touch,ln,cat,seq,su,who,dd,du,df 等等）
