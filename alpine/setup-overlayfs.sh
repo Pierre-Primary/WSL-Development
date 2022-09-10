@@ -1,5 +1,5 @@
 #!/usr/bin/env ash
-# shellcheck shell=bash
+# shellcheck shell=dash
 set -ex
 
 [ "$1" != "-f" ] && [ -e /etc/wsl-init ] && exit

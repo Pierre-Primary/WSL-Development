@@ -1,5 +1,5 @@
 #!/usr/bin/env ash
-# shellcheck shell=bash
+# shellcheck shell=dash
 set -ex
 
 # https://blog.csdn.net/woshaguayi/article/details/114089866

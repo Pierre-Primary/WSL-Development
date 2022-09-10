@@ -1,5 +1,5 @@
 #!/usr/bin/env ash
-# shellcheck shell=bash
+# shellcheck shell=dash
 set -ex
 
 apk add zsh

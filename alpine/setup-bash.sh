@@ -1,5 +1,5 @@
 #!/usr/bin/env ash
-# shellcheck shell=bash
+# shellcheck shell=dash
 set -ex
 
 # 切换 bash，并安装 completion
