@@ -1,9 +1,10 @@
 #!/usr/bin/env ash
 # shellcheck shell=dash
 
+set -e
+
 type apk >/dev/null 2>&1 || exit
 
-set -e
 cd "$(dirname "$0")"
 alias menu='../base/menu.sh'
 
@@ -13,7 +14,7 @@ menu -n \
     "中国科技大学" "清华大学" "南京大学" \
     "阿里云" "腾讯云" "华为云"
 index=$?
-set -e
+set -ex
 
 echo $index
 

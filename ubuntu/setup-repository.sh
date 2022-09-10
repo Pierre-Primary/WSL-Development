@@ -1,9 +1,10 @@
 #! /usr/bin/env bash
 shopt -s expand_aliases
 
+set -e
+
 type apt >/dev/null 2>&1 || exit
 
-set -e
 cd "$(dirname "$0")"
 alias menu='../base/menu.sh'
 
