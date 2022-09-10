@@ -1,4 +1,5 @@
-#!/usr/bin/env sh
+#!/usr/bin/env ash
+# shellcheck shell=bash
 set -ex
 
 # 切换 bash，并安装 completion
