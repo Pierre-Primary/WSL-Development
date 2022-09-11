@@ -1,27 +1,16 @@
-# shellcheck shell=bash
-if [ "$1" = "--check" ]; then
-    (hash bash 2>/dev/null || hash ash 2>/dev/null) && exit 0
-    exit 1
-elif [ -z "$_SELECT_SHELL" ]; then
-    export _SELECT_SHELL=1
-    if hash bash 2>/dev/null; then
-        exec /usr/bin/env bash "$0" "$@"
-    elif hash ash 2>/dev/null; then
-        exec /usr/bin/env ash "$0" "$@"
-    else
-        exit 1
-    fi
-    exit
-fi
-export _SELECT_SHELL=0
+#! /bin/sh
 
+OLD_STTY=$(stty -g)
 ESC=$(printf "\033")
+stty -echo
 while true; do
-    IFS='' read -rsn1 _KEY
-    case $_KEY in
+    stty -icanon min 1 time 0
+    _CHAR="$(dd bs=1 count=1 2>/dev/null)"
+    case $_CHAR in
     "${ESC}")
-        IFS='' read -rs -n2 -t0.001 _KEY >/dev/null 2>&1
-        case $_KEY in
+        stty -icanon min 0 time 1
+        _CHAR="$(dd bs=1 count=2 2>/dev/null)"
+        case $_CHAR in
         "[A") echo "up" && break ;;
         "[B") echo "down" && break ;;
         "[C") echo "right" && break ;;
@@ -34,3 +23,4 @@ while true; do
     q | Q) echo "quit" && break ;;
     esac
 done
+stty "$OLD_STTY"
