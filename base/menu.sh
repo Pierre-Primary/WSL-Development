@@ -37,17 +37,17 @@ done
 [ $# -eq 0 ] && exit
 
 [ -n "$_TITLE" ] && echo "$_TITLE"
-if input_control_key --check; then
+if true; then
     trap 'printf "\033[?25h"' EXIT
     printf "\033[?25l"
     while true; do
         _STX=$(((_STX + $#) % $#))
         print_opts "$_STX" "$_SHOW_NUMBER" "$@"
         case $(input_control_key) in
-        up) _STX=$((_STX - 1)) ;;
-        down) _STX=$((_STX + 1)) ;;
-        enter) break ;;
-        quit) exit 0 ;;
+        Up) _STX=$((_STX - 1)) ;;
+        Down) _STX=$((_STX + 1)) ;;
+        Enter) break ;;
+        Esc) exit 0 ;;
         esac
         printf '\033[%dA' $#
     done
