@@ -15,13 +15,13 @@ while true; do
         "[B") echo "Down" ;;
         "[C") echo "Right" ;;
         "[D") echo "Left" ;;
-        "") echo "Esc" ;;
+        "") echo "Esc" && break ;;
         *) continue ;;
         esac
         ;;
     " ") echo "Space" ;;
     "") echo "Enter" ;;
-    q | Q) echo "Esc" ;;
+    q | Q) echo "Esc" && break ;;
     *) continue ;;
     esac
     [ "$1" != "--loop" ] && break
