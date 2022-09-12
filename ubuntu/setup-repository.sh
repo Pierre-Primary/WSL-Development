@@ -3,7 +3,7 @@ shopt -s expand_aliases
 
 set -e
 
-type apt >/dev/null 2>&1 || exit
+type sudo >/dev/null 2>&1 && SUDO="sudo"
 
 cd "$(dirname "$0")"
 alias menu-control='../base/menu-control.sh'
@@ -29,14 +29,14 @@ case "$index" in
 *) exit ;;
 esac
 
-! [ -e /etc/apt/sources.list.bak ] && cp /etc/apt/sources.list /etc/apt/sources.list.bak
+! [ -e /etc/apt/sources.list.bak ] && $SUDO cp /etc/apt/sources.list /etc/apt/sources.list.bak
 
 if type lsb_release >/dev/null 2>&1; then
     release=$(lsb_release -cs)
 else
     release=$(awk -F'=' ' $1 == "VERSION_CODENAME" { print $2; exit }' </etc/os-release)
 fi
-tee /etc/apt/sources.list <<EOF
+$SUDO tee /etc/apt/sources.list <<EOF
 deb http://$domain/ubuntu/ $release main restricted universe multiverse
 # deb-src http://$domain/ubuntu/ $release main restricted universe multiverse
 
@@ -52,4 +52,4 @@ deb http://$domain/ubuntu/ $release-security main restricted universe multiverse
 # deb http://$domain/ubuntu/ $release-proposed main restricted universe multiverse
 # deb-src http://$domain/ubuntu/ $release-proposed main restricted universe multiverse
 EOF
-apt update
+$SUDO apt update
