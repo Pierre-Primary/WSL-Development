@@ -6,10 +6,10 @@ set -e
 type apt >/dev/null 2>&1 || exit
 
 cd "$(dirname "$0")"
-alias menu='../base/menu.sh'
+alias menu-control='../base/menu-control.sh'
 
 set +e
-menu -n \
+menu-control -n \
     -t "选择需要切换的仓库：" \
     "中国科技大学" "清华大学" "南京大学" \
     "阿里云" "腾讯云" "华为云" "网易云"
