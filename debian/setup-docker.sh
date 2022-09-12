@@ -1,26 +1,49 @@
 #!/usr/bin/env bash
-set -ex
+set -x
 
-cd "$(dirname "$0")"
+type sudo >/dev/null 2>&1 && SUDO="sudo"
 
-if [ "$1" != "--enter" ]; then
-    ./setup-systemd.sh
-    /etc/wsl-init/enter "sleep 0.5; $0 --enter"
-    exit
-fi
+$SUDO apt update
 
-apt install -y curl gpg lsb-release
+# 卸载旧版
+$SUDO apt remove -y docker docker-engine docker.io containerd runc 2>/dev/null
 
-mkdir -p /etc/apt/keyrings
-rm -f /etc/apt/keyrings/docker.gpg
-curl -fsSL https://mirrors.ustc.edu.cn/docker-ce/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://mirrors.ustc.edu.cn/docker-ce/linux/debian $(lsb_release -cs) stable" |
-    tee /etc/apt/sources.list.d/docker.list >/dev/null
-apt update
+set -e
 
-apt install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+# 安装工具
+$SUDO apt install -y \
+    ca-certificates \
+    curl \
+    gnupg \
+    lsb-release
 
-sed -ri '/^ExecStart=\/usr\/bin\/dockerd/c ExecStart=/usr/bin/dockerd -H fd:// -H tcp://0.0.0.0:2375 --containerd=/run/containerd/containerd.sock' /lib/systemd/system/docker.service
+# 配置 Docker 软件源密钥
+$SUDO mkdir -p /etc/apt/keyrings
+$SUDO rm -f /etc/apt/keyrings/docker.gpg
+curl -fsSL https://mirrors.ustc.edu.cn/docker-ce/linux/ubuntu/gpg |
+    $SUDO gpg --dearmor -o /etc/apt/keyrings/docker.gpg
 
-systemctl daemon-reload
-systemctl restart docker.service
+# 配置 Docker 软件源
+$SUDO tee /etc/apt/sources.list.d/docker.list >/dev/null <<EOF
+deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://mirrors.ustc.edu.cn/docker-ce/linux/ubuntu $(lsb_release -cs) stable
+EOF
+$SUDO apt update
+
+# 安装 Docker
+$SUDO apt install -y \
+    docker-ce \
+    docker-ce-cli \
+    containerd.io \
+    docker-compose-plugin
+
+# 配置 Docker
+$SUDO sed -ri '/^ExecStart=/c ExecStart=/usr/bin/dockerd -H fd:// -H tcp://0.0.0.0:2375 --containerd=/run/containerd/containerd.sock' /lib/systemd/system/docker.service
+$SUDO systemctl daemon-reload
+
+# 重启 docker 服务
+$SUDO systemctl restart docker.service
+
+# 卸载
+# sudo apt remove -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+
+# sudo mount -t vboxsf share /mnt/g
