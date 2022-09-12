@@ -120,7 +120,7 @@ Requires=docker.socket containerd.service
 
 [Service]
 Type=notify
-ExecStart=$DOCKER_INSTALL_PATH/dockerd -H fd:// --containerd=/run/containerd/containerd.sock
+ExecStart=$DOCKER_INSTALL_PATH/dockerd -H fd:// -H tcp://0.0.0.0:2375 --containerd=/run/containerd/containerd.sock
 ExecReload=/bin/kill -s HUP \$MAINPID
 TimeoutSec=0
 RestartSec=2
