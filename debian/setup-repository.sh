@@ -3,7 +3,7 @@ shopt -s expand_aliases
 
 set -e
 
-type apt >/dev/null 2>&1 || exit
+type sudo >/dev/null 2>&1 && SUDO="sudo"
 
 cd "$(dirname "$0")"
 alias menu-control='../base/menu-control.sh'
@@ -29,14 +29,14 @@ case "$index" in
 *) exit ;;
 esac
 
-! [ -e /etc/apt/sources.list.bak ] && cp /etc/apt/sources.list /etc/apt/sources.list.bak
+! [ -e /etc/apt/sources.list.bak ] && $SUDO cp /etc/apt/sources.list /etc/apt/sources.list.bak
 
 if type lsb_release >/dev/null 2>&1; then
     release=$(lsb_release -cs)
 else
     release=$(awk -F'=' ' $1 == "VERSION_CODENAME" { print $2; exit }' </etc/os-release)
 fi
-tee /etc/apt/sources.list <<EOF
+$SUDO tee /etc/apt/sources.list <<EOF
 deb http://$domain/debian/ $release main contrib non-free
 # deb-src http://$domain/debian/ $release main contrib non-free
 
@@ -49,4 +49,4 @@ deb http://$domain/debian/ $release-updates main contrib non-free
 # deb http://$domain/debian-security $release-security main contrib non-free
 # deb-src http://$domain/debian-security $release-security main contrib non-free
 EOF
-apt update
+$SUDO apt update
