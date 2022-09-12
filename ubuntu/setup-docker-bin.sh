@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -ex
+set -x
 
 # 配置安装版本
 DOCKER_VERSION=20.10.18
@@ -10,10 +10,8 @@ DOCKER_ARCH=x86_64
 
 type sudo >/dev/null 2>&1 && SUDO="sudo"
 
-set +e
 $SUDO systemctl stop docker.service docker.socket containerd.service 2>/dev/null
 $SUDO systemctl disable docker.service docker.socket containerd.service 2>/dev/null
-set -e
 
 ########################################################################################################
 # 准备工作
@@ -42,6 +40,7 @@ curl -sL "$DOCKER_PKG_URL" |
 $SUDO mkdir -p $DOCKER_INSTALL_PATH
 $SUDO install -m 755 "${TEMP_DIR}"/* $DOCKER_INSTALL_PATH
 
+DOCKER_FILES=$($SUDO find "$TEMP_DIR" -type f | sed -E "s|^$TEMP_DIR|$DOCKER_INSTALL_PATH|g" | tr "\n" " ")
 $SUDO rm -rf "$TEMP_DIR"
 
 ########################################################################################################
@@ -163,8 +162,9 @@ type sudo >/dev/null 2>&1 && SUDO="sudo"
 \$SUDO systemctl disable docker.service docker.socket containerd.service 2>/dev/null
 
 \$SUDO rm -f $DOCKER_SEVICE_PATH/docker.service $DOCKER_SEVICE_PATH/docker.socket $DOCKER_SEVICE_PATH/containerd.service
-
+${DOCKER_FILES:+\$SUDO rm -f $DOCKER_FILES}
 # \$SUDO rm -rf /etc/docker /etc/containerd
+# \$SUDO rm -rf /var/lib/docker /var/lib/containerd
 
 \$SUDO groupdel docker 2>/dev/null
 
