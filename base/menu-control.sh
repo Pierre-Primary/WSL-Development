@@ -6,7 +6,7 @@ _S_PATH=$(
     pwd
 )
 
-alias input-control=$_S_PATH/input-control.sh
+alias input-control='$_S_PATH/input-control.sh'
 
 print_opts() {
     _STX=$1 && shift
