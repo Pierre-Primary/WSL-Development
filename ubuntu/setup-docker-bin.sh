@@ -2,7 +2,7 @@
 set -x
 
 # 配置安装版本
-DOCKER_VERSION=20.10.18
+DOCKER_VER=20.10.18
 DOCKER_ARCH=x86_64
 
 ########################################################################################################
@@ -17,8 +17,8 @@ $SUDO systemctl disable docker.service docker.socket containerd.service 2>/dev/n
 # 准备工作
 
 # 确定安装位置
-DOCKER_INSTALL_PATH=/usr/local/bin
-DOCKER_SEVICE_PATH=/usr/local/lib/systemd/system
+INSTALL_PATH=/usr/local/bin
+SEVICE_PATH=/usr/local/lib/systemd/system
 
 # 安装工具
 $SUDO apt install -y \
@@ -30,17 +30,17 @@ $SUDO apt install -y \
 ########################################################################################################
 # 安装 docker, 包含 ( dockerd, docker-cli, containerd, ctr, runc 等 )
 
-DOCKER_PKG_URL=https://mirrors.ustc.edu.cn/docker-ce/linux/static/stable/${DOCKER_ARCH}/docker-${DOCKER_VERSION}.tgz
+DOCKER_PKG_URL=https://mirrors.ustc.edu.cn/docker-ce/linux/static/stable/${DOCKER_ARCH}/docker-${DOCKER_VER}.tgz
 
 TEMP_DIR=$(mktemp -d)
 
 curl -sL "$DOCKER_PKG_URL" |
     $SUDO tar -xzv -C "$TEMP_DIR" --strip-components=1 --no-same-owner
 
-$SUDO mkdir -p $DOCKER_INSTALL_PATH
-$SUDO install -m 755 "${TEMP_DIR}"/* $DOCKER_INSTALL_PATH
+$SUDO mkdir -p $INSTALL_PATH
+$SUDO install -m 755 "${TEMP_DIR}"/* $INSTALL_PATH
 
-DOCKER_FILES=$($SUDO find "$TEMP_DIR" -type f | sed -E "s|^$TEMP_DIR|$DOCKER_INSTALL_PATH|g" | tr "\n" " ")
+DOCKER_FILES=$($SUDO find "$TEMP_DIR" -type f | sed -E "s|^$TEMP_DIR|$INSTALL_PATH|g" | tr "\n" " ")
 $SUDO rm -rf "$TEMP_DIR"
 
 ########################################################################################################
@@ -50,11 +50,11 @@ $SUDO rm -rf "$TEMP_DIR"
 $SUDO mkdir -p /etc/containerd
 containerd config default | $SUDO tee /etc/containerd/config.toml >/dev/null
 
-$SUDO mkdir -p $DOCKER_SEVICE_PATH
+$SUDO mkdir -p $SEVICE_PATH
 
 # containerd 服务配置
 # https://github.com/containerd/containerd/blob/main/containerd.service
-$SUDO tee $DOCKER_SEVICE_PATH/containerd.service >/dev/null <<EOF
+$SUDO tee $SEVICE_PATH/containerd.service >/dev/null <<EOF
 [Unit]
 Description=Containerd Container Runtime
 Documentation=https://containerd.io
@@ -63,7 +63,7 @@ After=network.target local-fs.target
 [Service]
 # Environment="ENABLE_CRI_SANDBOXES=sandboxed"
 ExecStartPre=-/sbin/modprobe overlay
-ExecStart=$DOCKER_INSTALL_PATH/containerd --address=/run/containerd/containerd.sock
+ExecStart=$INSTALL_PATH/containerd --address=/run/containerd/containerd.sock
 
 Type=notify
 Delegate=yes
@@ -93,10 +93,10 @@ $SUDO systemctl start containerd
 # 创建 docker 用户组
 $SUDO groupadd -f docker
 
-$SUDO mkdir -p $DOCKER_SEVICE_PATH
+$SUDO mkdir -p $SEVICE_PATH
 
 # docker 服务配置
-$SUDO tee $DOCKER_SEVICE_PATH/docker.socket >/dev/null <<EOF
+$SUDO tee $SEVICE_PATH/docker.socket >/dev/null <<EOF
 [Unit]
 Description=Docker Socket for the API
 
@@ -110,7 +110,7 @@ SocketGroup=docker
 WantedBy=sockets.target
 EOF
 
-$SUDO tee $DOCKER_SEVICE_PATH/docker.service >/dev/null <<EOF
+$SUDO tee $SEVICE_PATH/docker.service >/dev/null <<EOF
 [Unit]
 Description=Docker Application Container Engine
 Documentation=https://docs.docker.com
@@ -120,7 +120,7 @@ Requires=docker.socket containerd.service
 
 [Service]
 Type=notify
-ExecStart=$DOCKER_INSTALL_PATH/dockerd -H fd:// -H tcp://0.0.0.0:2375 --containerd=/run/containerd/containerd.sock
+ExecStart=$INSTALL_PATH/dockerd -H fd:// -H tcp://0.0.0.0:2375 --containerd=/run/containerd/containerd.sock
 ExecReload=/bin/kill -s HUP \$MAINPID
 TimeoutSec=0
 RestartSec=2
@@ -161,7 +161,7 @@ type sudo >/dev/null 2>&1 && SUDO="sudo"
 \$SUDO systemctl stop docker.service docker.socket containerd.service 2>/dev/null
 \$SUDO systemctl disable docker.service docker.socket containerd.service 2>/dev/null
 
-\$SUDO rm -f $DOCKER_SEVICE_PATH/docker.service $DOCKER_SEVICE_PATH/docker.socket $DOCKER_SEVICE_PATH/containerd.service
+\$SUDO rm -f $SEVICE_PATH/docker.service $SEVICE_PATH/docker.socket $SEVICE_PATH/containerd.service
 ${DOCKER_FILES:+\$SUDO rm -f $DOCKER_FILES}
 # \$SUDO rm -rf /etc/docker /etc/containerd
 # \$SUDO rm -rf /var/lib/docker /var/lib/containerd
