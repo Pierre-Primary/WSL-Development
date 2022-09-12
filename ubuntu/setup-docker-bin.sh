@@ -30,11 +30,11 @@ $SUDO apt install -y \
 ########################################################################################################
 # 安装 docker, 包含 ( dockerd, docker-cli, containerd, ctr, runc 等 )
 
-DOCKER_PKG_URL=https://mirrors.ustc.edu.cn/docker-ce/linux/static/stable/${DOCKER_ARCH}/docker-${DOCKER_VER}.tgz
+PKG_URL=https://mirrors.ustc.edu.cn/docker-ce/linux/static/stable/${DOCKER_ARCH}/docker-${DOCKER_VER}.tgz
 
 TEMP_DIR=$(mktemp -d)
 
-curl -sL "$DOCKER_PKG_URL" |
+curl -sL "$PKG_URL" |
     $SUDO tar -xzv -C "$TEMP_DIR" --strip-components=1 --no-same-owner
 
 $SUDO mkdir -p $INSTALL_PATH
