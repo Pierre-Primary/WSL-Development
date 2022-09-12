@@ -41,9 +41,7 @@ $SUDO sed -ri '/^ExecStart=/c ExecStart=/usr/bin/dockerd -H fd:// -H tcp://0.0.0
 $SUDO systemctl daemon-reload
 
 # 重启 docker 服务
-$SUDO systemctl restart docker.service
+$SUDO systemctl restart docker
 
 # 卸载
-# sudo apt remove -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
-
-# sudo mount -t vboxsf share /mnt/g
+# sudo apt autoremove -y --purge docker-ce docker-ce-cli containerd.io docker-compose-plugin
