@@ -23,6 +23,13 @@ type sudo >/dev/null 2>&1 && SUDO="sudo"
 
 \$SUDO apt autoremove -y --purge etcd
 
+if [ "\$1" = "-a" ] || [ "\$1" = "--all" ]; then
+    # 清理配置
+    \$SUDO rm -rf /etc/etcd
+    # 清理数据文件
+    \$SUDO rm -rf /var/lib/etcd
+fi
+
 \$SUDO rm -f /usr/local/bin/etcd-uninstall
 EOF
 $SUDO chmod u+x /usr/local/bin/etcd-uninstall
