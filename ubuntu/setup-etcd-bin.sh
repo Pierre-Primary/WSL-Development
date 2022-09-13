@@ -10,6 +10,9 @@ ETCD_ARCH=amd64
 
 type sudo >/dev/null 2>&1 && SUDO="sudo"
 
+$SUDO systemctl stop etcd 2>/dev/null
+$SUDO systemctl disable etcd 2>/dev/null
+
 ########################################################################################################
 # 准备工作
 
@@ -82,8 +85,8 @@ EOF
 $SUDO systemctl daemon-reload
 
 # 启动 etcd 服务，并设置为自启动
-$SUDO systemctl enable etcd.service
-$SUDO systemctl start etcd.service
+$SUDO systemctl enable etcd
+$SUDO systemctl start etcd
 
 ########################################################################################################
 # 生成卸载脚本
@@ -94,8 +97,8 @@ set -x
 type sudo >/dev/null 2>&1 && SUDO="sudo"
 
 # 停止并禁用服务
-\$SUDO systemctl stop etcd.service 2>/dev/null
-\$SUDO systemctl disable etcd.service 2>/dev/null
+\$SUDO systemctl stop etcd 2>/dev/null
+\$SUDO systemctl disable etcd 2>/dev/null
 
 # 删除服务
 \$SUDO rm -f $SEVICE_PATH/etcd.service
@@ -104,10 +107,12 @@ type sudo >/dev/null 2>&1 && SUDO="sudo"
 # 删除执行文件
 \$SUDO rm -r $INSTALL_PATH/etcd $INSTALL_PATH/etcdctl
 
-# 清理配置
-# \$SUDO rm -rf /etc/etcd
-# 清理数据文件
-# \$SUDO rm -rf /var/lib/etcd
+if [ "\$1" = "-a" ] || [ "\$1" = "--all" ]; then
+    # 清理配置
+    \$SUDO rm -rf /etc/etcd
+    # 清理数据文件
+    \$SUDO rm -rf /var/lib/etcd
+fi
 
 # 删除脚本
 \$SUDO rm -f /usr/local/bin/etcd-uninstall
