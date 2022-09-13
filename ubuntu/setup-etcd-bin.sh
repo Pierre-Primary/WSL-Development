@@ -6,6 +6,10 @@ ETCD_VER=3.4.20
 ETCD_ARCH=amd64
 
 ########################################################################################################
+
+
+
+########################################################################################################
 # 安全安装
 
 type sudo >/dev/null 2>&1 && SUDO="sudo"
@@ -49,8 +53,8 @@ $SUDO mkdir -p /etc/containerd
 
 $SUDO mkdir -p $SEVICE_PATH
 
-$SUDO tee /etc/etcd/conf.yml >/dev/null <<EOF
-EOF
+# $SUDO tee /etc/etcd/conf.yml >/dev/null <<EOF
+# EOF
 
 $SUDO tee /etc/default/etcd >/dev/null <<EOF
 # ETCD_NAME="default"
