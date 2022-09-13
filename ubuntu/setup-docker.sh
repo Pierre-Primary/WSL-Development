@@ -55,6 +55,15 @@ type sudo >/dev/null 2>&1 && SUDO="sudo"
 
 \$SUDO apt autoremove -y --purge docker-ce docker-ce-cli containerd.io docker-compose-plugin
 
+if [ "\$1" = "-a" ] || [ "\$1" = "--all" ]; then
+    # 清理配置
+    \$SUDO rm -rf /etc/docker /etc/containerd
+    # 清理数据文件
+    \$SUDO rm -rf /var/lib/docker /var/lib/containerd
+    # 删除用户组
+    \$SUDO groupdel docker 2>/dev/null
+fi
+
 \$SUDO rm -f /usr/local/bin/docker-uninstall
 EOF
 $SUDO chmod u+x /usr/local/bin/docker-uninstall
