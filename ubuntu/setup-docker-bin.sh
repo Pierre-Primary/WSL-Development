@@ -171,13 +171,14 @@ type sudo >/dev/null 2>&1 && SUDO="sudo"
 # 删除执行文件
 ${DOCKER_FILES:+\$SUDO rm -f $DOCKER_FILES}
 
-# 清理配置
-# \$SUDO rm -rf /etc/docker /etc/containerd
-# 清理数据文件
-# \$SUDO rm -rf /var/lib/docker /var/lib/containerd
-
-# 删除用户组
-\$SUDO groupdel docker 2>/dev/null
+if [ "\$1" = "-a" ] || [ "\$1" = "--all" ]; then
+    # 清理配置
+    \$SUDO rm -rf /etc/docker /etc/containerd
+    # 清理数据文件
+    \$SUDO rm -rf /var/lib/docker /var/lib/containerd
+    # 删除用户组
+    \$SUDO groupdel docker 2>/dev/null
+fi
 
 # 删除脚本
 \$SUDO rm -f /usr/local/bin/docker-uninstall
