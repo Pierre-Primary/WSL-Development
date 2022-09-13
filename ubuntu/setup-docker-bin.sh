@@ -20,6 +20,8 @@ $SUDO systemctl disable docker.service docker.socket containerd.service 2>/dev/n
 INSTALL_PATH=/usr/local/bin
 SEVICE_PATH=/usr/local/lib/systemd/system
 
+$SUDO apt update
+
 # 安装工具
 $SUDO apt install -y \
     ca-certificates \
@@ -158,16 +160,26 @@ $SUDO tee /usr/local/bin/docker-uninstall <<EOF >/dev/null
 set -x
 type sudo >/dev/null 2>&1 && SUDO="sudo"
 
+# 停止并禁用服务
 \$SUDO systemctl stop docker.service docker.socket containerd.service 2>/dev/null
 \$SUDO systemctl disable docker.service docker.socket containerd.service 2>/dev/null
 
+# 删除服务
 \$SUDO rm -f $SEVICE_PATH/docker.service $SEVICE_PATH/docker.socket $SEVICE_PATH/containerd.service
+# 删除服务配置
+\$SUDO rm -f /etc/default/docker
+# 删除执行文件
 ${DOCKER_FILES:+\$SUDO rm -f $DOCKER_FILES}
+
+# 清理配置
 # \$SUDO rm -rf /etc/docker /etc/containerd
+# 清理数据文件
 # \$SUDO rm -rf /var/lib/docker /var/lib/containerd
 
+# 删除用户组
 \$SUDO groupdel docker 2>/dev/null
 
+# 删除脚本
 \$SUDO rm -f /usr/local/bin/docker-uninstall
 EOF
 $SUDO chmod u+x /usr/local/bin/docker-uninstall
