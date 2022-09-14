@@ -37,16 +37,16 @@ done
 if [ -z "$IS_QUIET" ]; then
     [ -z "$ETCD_NAME" ] && read -r -p "Enter Name [$DEF_NAME] " ETCD_NAME
     [ -z "$ETCD_LISTEN_CLIENT_URLS" ] && read -r -p "Enter ListenClientUrls [$DEF_LISTEN_CLIENT_URLS] " ETCD_LISTEN_CLIENT_URLS
-    read -r -p "Enter Cluster (y|n) [n] " _ETCD_CLUSTER
+    read -r -p "Deploy Cluster? (y|n) [n] " _ETCD_CLUSTER
     if [ "$_ETCD_CLUSTER" = "y" ] || [ "$_ETCD_CLUSTER" = "Y" ]; then
         ETCD_CLUSTER=1
     else
         ETCD_CLUSTER=0
     fi
     if [ "$ETCD_CLUSTER" = "1" ]; then
-        [ -z "$ETCD_ADVERTISE_CLIENT_URLS" ] && read -r -p "Enter AdvertiseClientUrls [$ETCD_LISTEN_CLIENT_URLS] " ETCD_ADVERTISE_CLIENT_URLS
+        [ -z "$ETCD_ADVERTISE_CLIENT_URLS" ] && read -r -p "Enter AdvertiseClientUrls (Use 'ListenClientUrls' values by default) " ETCD_ADVERTISE_CLIENT_URLS
         [ -z "$ETCD_LISTEN_PEER_URLS" ] && read -r -p "Enter ListenPeerUrls [$DEF_LISTEN_PEER_URLS] " ETCD_LISTEN_PEER_URLS
-        [ -z "$ETCD_INITIAL_ADVERTISE_PEER_URLS" ] && read -r -p "Enter InitialAdvertisePeerUrls [$ETCD_LISTEN_PEER_URLS] " ETCD_INITIAL_ADVERTISE_PEER_URLS
+        [ -z "$ETCD_INITIAL_ADVERTISE_PEER_URLS" ] && read -r -p "Enter InitialAdvertisePeerUrls (Use 'ListenPeerUrls' values by default) " ETCD_INITIAL_ADVERTISE_PEER_URLS
         [ -z "$ETCD_INITIAL_CLUSTER" ] && read -r -p "Enter InitialCluster " ETCD_INITIAL_CLUSTER
         [ -z "$ETCD_INITIAL_CLUSTER_TOKEN" ] && read -r -p "Enter InitialClusterToken (Use random values by default) " ETCD_INITIAL_CLUSTER_TOKEN
         [ -z "$ETCD_INITIAL_CLUSTER_STATE" ] && read -r -p "Enter InitialClusterState (new|existing) [$DEF_INITIAL_CLUSTER_STATE] " ETCD_INITIAL_CLUSTER_STATE
@@ -59,6 +59,7 @@ fi
 [ -z "$ETCD_ADVERTISE_CLIENT_URLS" ] && ETCD_ADVERTISE_CLIENT_URLS=$ETCD_LISTEN_CLIENT_URLS
 [ -z "$ETCD_LISTEN_PEER_URLS" ] && ETCD_LISTEN_PEER_URLS=$DEF_LISTEN_PEER_URLS
 [ -z "$ETCD_INITIAL_ADVERTISE_PEER_URLS" ] && ETCD_INITIAL_ADVERTISE_PEER_URLS=$ETCD_LISTEN_PEER_URLS
+[ -z "$ETCD_INITIAL_CLUSTER" ] && ETCD_INITIAL_CLUSTER="$ETCD_NAME=${ETCD_INITIAL_ADVERTISE_PEER_URLS%%,*}"
 [ -z "$ETCD_INITIAL_CLUSTER_TOKEN" ] && ETCD_INITIAL_CLUSTER_TOKEN=$(mktemp -u XXXXXXXX)
 [ -z "$ETCD_INITIAL_CLUSTER_STATE" ] && ETCD_INITIAL_CLUSTER_STATE=$DEF_INITIAL_CLUSTER_STATE
 
@@ -111,12 +112,12 @@ $SUDO tee /etc/etcd/conf.yml >/dev/null <<EOF
 # member
 name: $ETCD_NAME
 listen-client-urls: $ETCD_LISTEN_CLIENT_URLS
+# cluster
 advertise-client-urls: $ETCD_ADVERTISE_CLIENT_URLS
 listen-peer-urls: $ETCD_LISTEN_PEER_URLS
 EOF
 
 [ "$ETCD_CLUSTER" = "1" ] && $SUDO tee -a /etc/etcd/conf.yml >/dev/null <<EOF
-# cluster
 initial-advertise-peer-urls: $ETCD_INITIAL_ADVERTISE_PEER_URLS
 initial-cluster: $ETCD_INITIAL_CLUSTER
 initial-cluster-token: $ETCD_INITIAL_CLUSTER_TOKEN
