@@ -32,4 +32,4 @@ fi
 
 \$SUDO rm -f /usr/local/bin/etcd-uninstall
 EOF
-$SUDO chmod u+x /usr/local/bin/etcd-uninstall
+$SUDO chmod +x /usr/local/bin/etcd-uninstall
