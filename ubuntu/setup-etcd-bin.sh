@@ -1,14 +1,10 @@
 #!/usr/bin/env bash
 
 # 配置安装版本
-ETCD_VER=3.4.20
-ETCD_ARCH=amd64
+ETCD_VER=${ETCD_VER:-3.4.20}
+ETCD_ARCH=${ETCD_ARCH:-amd64}
 
 ########################################################################################################
-
-ReplaceIP() {
-    echo "$1" | sed -E "s/(0.0.0.0|127.0.0.1|localhost)/$2/g"
-}
 
 IP_ADDR=$(ip addr | awk '/inet.*global/ {print gensub(/(.*)\/(.*)/, "\\1", "g", $2); exit }')
 
