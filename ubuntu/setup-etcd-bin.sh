@@ -15,7 +15,7 @@ IP_ADDR=$(ip addr | awk '/inet.*global/ {print gensub(/(.*)\/(.*)/, "\\1", "g", 
 DEF_NAME=$(hostname -s)
 DEF_LISTEN_CLIENT_ADDRESS="0.0.0.0"
 DEF_LISTEN_CLIENT_PORT=2379
-DEF_LISTEN_PEER_ADDRESS="${IP_ADDR:-0.0.0.0}"
+DEF_LISTEN_PEER_ADDRESS="0.0.0.0"
 DEF_LISTEN_PEER_PORT=2380
 DEF_ADVERTISE_ADDRESS="${IP_ADDR:-0.0.0.0}"
 DEF_CLUSTER_TOKEN=$(mktemp -u XXXXXXXX)
@@ -138,7 +138,7 @@ $SUDO apt install -y \
 ########################################################################################################
 
 TEMP_DIR=$(mktemp -d)
-pushd "$TEMP_DIR" || exit
+pushd "$TEMP_DIR" >/dev/null || exit
 
 $SUDO curl -sSL -o etcd.tar.gz https://github.com/etcd-io/etcd/releases/download/v${ETCD_VER}/etcd-v${ETCD_VER}-linux-${ETCD_ARCH}.tar.gz
 $SUDO tar -xzf etcd.tar.gz --strip-components=1
@@ -146,7 +146,7 @@ $SUDO tar -xzf etcd.tar.gz --strip-components=1
 $SUDO mkdir -p $INSTALL_PATH
 $SUDO install -m 755 etcd etcdctl $INSTALL_PATH
 
-popd || :
+popd >/dev/null || :
 $SUDO rm -rf "$TEMP_DIR"
 
 ########################################################################################################
@@ -154,20 +154,22 @@ $SUDO rm -rf "$TEMP_DIR"
 # $SUDO mkdir -p /etc/etcd
 # $SUDO tee /etc/etcd/conf.yml >/dev/null <<EOF
 # EOF
-{
-    echo "# [ member ]"
-    [ -n "$ETCD_NAME" ] && echo "ETCD_NAME=\"$ETCD_NAME\""
-    [ -n "$ETCD_LISTEN_CLIENT_URLS" ] && echo -e "ETCD_LISTEN_CLIENT_URLS=\"$ETCD_LISTEN_CLIENT_URLS\""
-    [ -n "$ETCD_LISTEN_PEER_URLS" ] && echo -e "ETCD_LISTEN_PEER_URLS=\"$ETCD_LISTEN_PEER_URLS\""
-    echo "# [ cluster ]"
-    [ -n "$ETCD_ADVERTISE_CLIENT_URLS" ] && echo -e "ETCD_ADVERTISE_CLIENT_URLS=\"$ETCD_ADVERTISE_CLIENT_URLS\""
-    if [ "$OPT_IS_CLUSTER" = "1" ]; then
-        [ -n "$ETCD_INITIAL_ADVERTISE_PEER_URLS" ] && echo -e "ETCD_INITIAL_ADVERTISE_PEER_URLS=\"$ETCD_INITIAL_ADVERTISE_PEER_URLS\""
-        [ -n "$ETCD_INITIAL_CLUSTER" ] && echo -e "ETCD_INITIAL_CLUSTER=\"$ETCD_INITIAL_CLUSTER\""
-        [ -n "$ETCD_INITIAL_CLUSTER_TOKEN" ] && echo -e "ETCD_INITIAL_CLUSTER_TOKEN=\"$ETCD_INITIAL_CLUSTER_TOKEN\""
-        [ -n "$ETCD_INITIAL_CLUSTER_STATE" ] && echo -e "ETCD_INITIAL_CLUSTER_STATE=\"$ETCD_INITIAL_CLUSTER_STATE\""
-    fi
-} | $SUDO tee /etc/default/etcd >/dev/null
+
+cat <<EOF | $SUDO tee /etc/default/etcd >/dev/null
+# [ member ]
+ETCD_NAME="$ETCD_NAME"
+ETCD_LISTEN_CLIENT_URLS="$ETCD_LISTEN_CLIENT_URLS"
+ETCD_LISTEN_PEER_URLS="$ETCD_LISTEN_PEER_URLS"
+# [ cluster ]
+ETCD_ADVERTISE_CLIENT_URLS="$ETCD_ADVERTISE_CLIENT_URLS"
+EOF
+
+[ "$OPT_IS_CLUSTER" = "1" ] && cat <<EOF | $SUDO tee -a /etc/default/etcd >/dev/null
+ETCD_INITIAL_ADVERTISE_PEER_URLS="$ETCD_INITIAL_ADVERTISE_PEER_URLS"
+ETCD_INITIAL_CLUSTER="$ETCD_INITIAL_CLUSTER"
+ETCD_INITIAL_CLUSTER_TOKEN="$ETCD_INITIAL_CLUSTER_TOKEN"
+ETCD_INITIAL_CLUSTER_STATE="$ETCD_INITIAL_CLUSTER_STATE"
+EOF
 
 $SUDO mkdir -p $SEVICE_PATH
 
