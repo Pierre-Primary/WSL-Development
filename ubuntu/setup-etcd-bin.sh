@@ -21,7 +21,12 @@ DEF_ADVERTISE_ADDRESS="${IP_ADDR:-0.0.0.0}"
 DEF_CLUSTER_TOKEN=$(mktemp -u XXXXXXXX)
 DEF_CLUSTER_STATE=new
 
-eval set -- "$(getopt -q -o n:q -l cluster,name:,listen-peer-urls:,listen-client-urls: -- "$@")"
+eval set -- "$(
+    getopt -q \
+        -o n:l:p:q \
+        -l name:,listen-client-address:,listen-client-port:,listen-peer-address:,listen-peer-port:,cluster,advertise-client-address:,advertise-peer-address:,cluster-list:,cluster-token:,cluster-state: \
+        -- "$@"
+)"
 while [ $# -gt 0 ]; do
     case $1 in
     -q) OPT_IS_QUIET=1 ;;
