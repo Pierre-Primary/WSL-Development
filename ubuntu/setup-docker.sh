@@ -53,6 +53,7 @@ $SUDO tee /usr/local/bin/docker-uninstall <<EOF >/dev/null
 set -x
 type sudo >/dev/null 2>&1 && SUDO="sudo"
 
+# 卸载程序
 \$SUDO apt autoremove -y --purge docker-ce docker-ce-cli containerd.io docker-compose-plugin
 
 if [ "\$1" = "-a" ] || [ "\$1" = "--all" ]; then
@@ -64,6 +65,7 @@ if [ "\$1" = "-a" ] || [ "\$1" = "--all" ]; then
     \$SUDO groupdel docker 2>/dev/null
 fi
 
+# 删除脚本
 \$SUDO rm -f /usr/local/bin/docker-uninstall
 EOF
 $SUDO chmod u+x /usr/local/bin/docker-uninstall
