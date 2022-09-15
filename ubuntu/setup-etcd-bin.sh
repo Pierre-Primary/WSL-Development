@@ -6,62 +6,103 @@ ETCD_ARCH=amd64
 
 ########################################################################################################
 
-DEF_NAME=$(hostname -s)
-IP_ADDR=$(ip addr | awk '/inet.*global/ {print gensub(/(.*)\/(.*)/, "\\1", "g", $2)}')
-DEF_LISTEN_CLIENT_URLS=http://0.0.0.0:2379
-DEF_LISTEN_PEER_URLS=http://${IP_ADDR:-0.0.0.0}:2380
-DEF_INITIAL_CLUSTER_STATE=new
+ReplaceIP() {
+    echo "$1" | sed -E "s/(0.0.0.0|127.0.0.1|localhost)/$2/g"
+}
 
-eval set -- "$(getopt -q -o n:q -l name:,listen-peer-urls:,listen-client-urls: -- "$@")"
+IP_ADDR=$(ip addr | awk '/inet.*global/ {print gensub(/(.*)\/(.*)/, "\\1", "g", $2); exit }')
+
+DEF_NAME=$(hostname -s)
+DEF_LISTEN_CLIENT_ADDRESS="0.0.0.0"
+DEF_LISTEN_CLIENT_PORT=2379
+DEF_LISTEN_PEER_ADDRESS="${IP_ADDR:-0.0.0.0}"
+DEF_LISTEN_PEER_PORT=2380
+DEF_ADVERTISE_ADDRESS="${IP_ADDR:-0.0.0.0}"
+DEF_CLUSTER_TOKEN=$(mktemp -u XXXXXXXX)
+DEF_CLUSTER_STATE=new
+
+eval set -- "$(getopt -q -o n:q -l cluster,name:,listen-peer-urls:,listen-client-urls: -- "$@")"
 while [ $# -gt 0 ]; do
     case $1 in
-    -q) IS_QUIET=1 ;;
-    -n | --name) ETCD_NAME=$2 && shift ;;
-    --listen-client-urls) ETCD_LISTEN_CLIENT_URLS=$2 && shift ;;
+    -q) OPT_IS_QUIET=1 ;;
+    -n | --name) OPT_NAME=$2 && shift ;;
+    -l | --listen-client-address) OPT_LISTEN_CLIENT_ADDRESS=$2 && shift ;;
+    -p | --listen-client-port) OPT_LISTEN_CLIENT_PORT=$2 && shift ;;
+    --listen-peer-address) OPT_LISTEN_PEER_ADDRESS=$2 && shift ;;
+    --listen-peer-port) OPT_LISTEN_PEER_PORT=$2 && shift ;;
     *)
         _FLAG=1
         case $1 in
-        --advertise-client-urls) ETCD_ADVERTISE_CLIENT_URLS=$2 && shift ;;
-        --listen-peer-urls) ETCD_LISTEN_PEER_URLS=$2 && shift ;;
-        --initial-advertise-peer-urls) ETCD_INITIAL_ADVERTISE_PEER_URLS=$2 && shift ;;
-        --initial-cluster) ETCD_INITIAL_CLUSTER=$2 && shift ;;
-        --initial-cluster-token) ETCD_INITIAL_CLUSTER_TOKEN=$2 && shift ;;
-        --initial-cluster-state) ETCD_INITIAL_CLUSTER_STATE=$2 && shift ;;
+        --cluster) OPT_IS_CLUSTER=1 ;;
+        --advertise-client-address) OPT_ADVERTISE_CLIENT_ADDRESS=$2 && shift ;;
+        --advertise-peer-address) OPT_ADVERTISE_PEER_ADDRESS=$2 && shift ;;
+        --cluster-list) OPT_CLUSTER_LIST=$2 && shift ;;
+        --cluster-token) OPT_CLUSTER_TOKEN=$2 && shift ;;
+        --cluster-state) OPT_CLUSTER_STATE=$2 && shift ;;
         *) _FLAG=0 ;;
         esac
-        [ "$_FLAG" -eq 1 ] && ETCD_CLUSTER=1
+        [ "$_FLAG" -eq 1 ] && OPT_IS_CLUSTER=1
         ;;
     esac
     shift
 done
-if [ -z "$IS_QUIET" ]; then
-    [ -z "$ETCD_NAME" ] && read -r -p "Enter Name [$DEF_NAME] " ETCD_NAME
-    [ -z "$ETCD_LISTEN_CLIENT_URLS" ] && read -r -p "Enter ListenClientUrls [$DEF_LISTEN_CLIENT_URLS] " ETCD_LISTEN_CLIENT_URLS
-    read -r -p "Deploy Cluster? (y|n) [n] " _ETCD_CLUSTER
-    if [ "$_ETCD_CLUSTER" = "y" ] || [ "$_ETCD_CLUSTER" = "Y" ]; then
-        ETCD_CLUSTER=1
-    else
-        ETCD_CLUSTER=0
-    fi
-    if [ "$ETCD_CLUSTER" = "1" ]; then
-        [ -z "$ETCD_ADVERTISE_CLIENT_URLS" ] && read -r -p "Enter AdvertiseClientUrls (Use 'ListenClientUrls' values by default) " ETCD_ADVERTISE_CLIENT_URLS
-        [ -z "$ETCD_LISTEN_PEER_URLS" ] && read -r -p "Enter ListenPeerUrls [$DEF_LISTEN_PEER_URLS] " ETCD_LISTEN_PEER_URLS
-        [ -z "$ETCD_INITIAL_ADVERTISE_PEER_URLS" ] && read -r -p "Enter InitialAdvertisePeerUrls (Use 'ListenPeerUrls' values by default) " ETCD_INITIAL_ADVERTISE_PEER_URLS
-        [ -z "$ETCD_INITIAL_CLUSTER" ] && read -r -p "Enter InitialCluster " ETCD_INITIAL_CLUSTER
-        [ -z "$ETCD_INITIAL_CLUSTER_TOKEN" ] && read -r -p "Enter InitialClusterToken (Use random values by default) " ETCD_INITIAL_CLUSTER_TOKEN
-        [ -z "$ETCD_INITIAL_CLUSTER_STATE" ] && read -r -p "Enter InitialClusterState (new|existing) [$DEF_INITIAL_CLUSTER_STATE] " ETCD_INITIAL_CLUSTER_STATE
+if [ -z "$OPT_IS_QUIET" ]; then
+    [ -z "$OPT_NAME" ] && read -r -p "Enter Name [$DEF_NAME] " OPT_NAME
+    [ -z "$OPT_NAME" ] && OPT_NAME=$DEF_NAME
+
+    [ -z "$OPT_LISTEN_CLIENT_ADDRESS" ] && read -r -p "Enter Listen Client Address [$DEF_LISTEN_CLIENT_ADDRESS] " OPT_LISTEN_CLIENT_ADDRESS
+    [ -z "$OPT_LISTEN_CLIENT_ADDRESS" ] && OPT_LISTEN_CLIENT_ADDRESS=$DEF_LISTEN_CLIENT_ADDRESS
+
+    [ -z "$OPT_LISTEN_CLIENT_PORT" ] && read -r -p "Enter Listen Client Port [$DEF_LISTEN_CLIENT_PORT] " OPT_LISTEN_CLIENT_PORT
+    [ -z "$OPT_LISTEN_CLIENT_PORT" ] && OPT_LISTEN_CLIENT_PORT=$DEF_LISTEN_CLIENT_PORT
+
+    [ -z "$OPT_LISTEN_PEER_ADDRESS" ] && read -r -p "Enter Listen Peer Address [$DEF_LISTEN_PEER_ADDRESS] " OPT_LISTEN_PEER_ADDRESS
+    [ -z "$OPT_LISTEN_PEER_ADDRESS" ] && OPT_LISTEN_PEER_ADDRESS=$DEF_LISTEN_PEER_ADDRESS
+
+    [ -z "$OPT_LISTEN_PEER_PORT" ] && read -r -p "Enter Listen Peer Port [$DEF_LISTEN_PEER_PORT] " OPT_LISTEN_PEER_PORT
+    [ -z "$OPT_LISTEN_PEER_PORT" ] && OPT_LISTEN_PEER_PORT=$DEF_LISTEN_PEER_PORT
+
+    read -r -p "Deploy Cluster? (y|n) [n] " _OPT_CLUSTER
+    if echo "$_OPT_CLUSTER" | grep -qwi "y"; then
+        OPT_IS_CLUSTER=1
+        [ -z "$OPT_ADVERTISE_CLIENT_ADDRESS" ] && read -r -p "Enter Advertise Client Address [$DEF_ADVERTISE_ADDRESS] " OPT_ADVERTISE_CLIENT_ADDRESS
+        [ -z "$OPT_ADVERTISE_CLIENT_ADDRESS" ] && OPT_ADVERTISE_CLIENT_ADDRESS=$DEF_ADVERTISE_ADDRESS
+
+        [ -z "$OPT_ADVERTISE_PEER_ADDRESS" ] && read -r -p "Enter Advertise Peer Address [$DEF_ADVERTISE_ADDRESS] " OPT_ADVERTISE_PEER_ADDRESS
+        [ -z "$OPT_ADVERTISE_PEER_ADDRESS" ] && OPT_ADVERTISE_PEER_ADDRESS=$DEF_ADVERTISE_ADDRESS
+
+        DEF_CLUSTER_LIST="$OPT_NAME=http://${OPT_ADVERTISE_PEER_ADDRESS}:${OPT_LISTEN_PEER_PORT}"
+        [ -z "$OPT_CLUSTER_LIST" ] && read -r -p "Enter Cluster List [$DEF_CLUSTER_LIST] " OPT_CLUSTER_LIST
+        [ -z "$OPT_CLUSTER_LIST" ] && OPT_CLUSTER_LIST=$DEF_CLUSTER_LIST
+
+        [ -z "$OPT_CLUSTER_TOKEN" ] && read -r -p "Enter Cluster Token (Use random values by default) [$DEF_CLUSTER_TOKEN] " OPT_CLUSTER_TOKEN
+        [ -z "$OPT_CLUSTER_TOKEN" ] && OPT_CLUSTER_TOKEN=$DEF_CLUSTER_TOKEN
+
+        [ -z "$OPT_CLUSTER_STATE" ] && read -r -p "Enter Cluster State (new|existing) [$DEF_CLUSTER_STATE] " OPT_CLUSTER_STATE
+        [ -z "$OPT_CLUSTER_STATE" ] && OPT_CLUSTER_STATE=$DEF_CLUSTER_STATE
     fi
 else
     echo "Running Quietly Mode"
 fi
-[ -z "$ETCD_NAME" ] && ETCD_NAME=$DEF_NAME
-[ -z "$ETCD_LISTEN_CLIENT_URLS" ] && ETCD_LISTEN_CLIENT_URLS=$DEF_LISTEN_CLIENT_URLS
-[ -z "$ETCD_ADVERTISE_CLIENT_URLS" ] && ETCD_ADVERTISE_CLIENT_URLS=$ETCD_LISTEN_CLIENT_URLS
-[ -z "$ETCD_LISTEN_PEER_URLS" ] && ETCD_LISTEN_PEER_URLS=$DEF_LISTEN_PEER_URLS
-[ -z "$ETCD_INITIAL_ADVERTISE_PEER_URLS" ] && ETCD_INITIAL_ADVERTISE_PEER_URLS=$ETCD_LISTEN_PEER_URLS
-[ -z "$ETCD_INITIAL_CLUSTER" ] && ETCD_INITIAL_CLUSTER="$ETCD_NAME=${ETCD_INITIAL_ADVERTISE_PEER_URLS%%,*}"
-[ -z "$ETCD_INITIAL_CLUSTER_TOKEN" ] && ETCD_INITIAL_CLUSTER_TOKEN=$(mktemp -u XXXXXXXX)
-[ -z "$ETCD_INITIAL_CLUSTER_STATE" ] && ETCD_INITIAL_CLUSTER_STATE=$DEF_INITIAL_CLUSTER_STATE
+[ -z "$OPT_NAME" ] && OPT_NAME=$DEF_NAME
+[ -z "$OPT_LISTEN_CLIENT_ADDRESS" ] && OPT_LISTEN_CLIENT_ADDRESS=$DEF_LISTEN_CLIENT_ADDRESS
+[ -z "$OPT_LISTEN_CLIENT_PORT" ] && OPT_LISTEN_CLIENT_PORT=$DEF_LISTEN_CLIENT_PORT
+[ -z "$OPT_LISTEN_PEER_ADDRESS" ] && OPT_LISTEN_PEER_ADDRESS=$DEF_LISTEN_PEER_ADDRESS
+[ -z "$OPT_LISTEN_PEER_PORT" ] && OPT_LISTEN_PEER_PORT=$DEF_LISTEN_PEER_PORT
+[ -z "$OPT_ADVERTISE_CLIENT_ADDRESS" ] && OPT_ADVERTISE_CLIENT_ADDRESS=$DEF_ADVERTISE_ADDRESS
+[ -z "$OPT_ADVERTISE_PEER_ADDRESS" ] && OPT_ADVERTISE_PEER_ADDRESS=$DEF_ADVERTISE_ADDRESS
+[ -z "$OPT_CLUSTER_LIST" ] && OPT_CLUSTER_LIST="$OPT_NAME=http://${OPT_ADVERTISE_PEER_ADDRESS}:${OPT_LISTEN_PEER_PORT}"
+[ -z "$OPT_CLUSTER_TOKEN" ] && OPT_CLUSTER_TOKEN=$DEF_CLUSTER_TOKEN
+[ -z "$OPT_CLUSTER_STATE" ] && OPT_CLUSTER_STATE=$DEF_CLUSTER_STATE
+
+ETCD_NAME=$OPT_NAME
+ETCD_LISTEN_CLIENT_URLS="http://${OPT_LISTEN_CLIENT_ADDRESS}:${OPT_LISTEN_CLIENT_PORT}"
+ETCD_LISTEN_PEER_URLS="http://${OPT_LISTEN_PEER_ADDRESS}:${OPT_LISTEN_PEER_PORT}"
+ETCD_ADVERTISE_CLIENT_URLS="http://${OPT_ADVERTISE_CLIENT_ADDRESS}:${OPT_LISTEN_CLIENT_PORT}"
+ETCD_INITIAL_ADVERTISE_PEER_URLS="http://${OPT_ADVERTISE_PEER_ADDRESS}:${OPT_LISTEN_PEER_PORT}"
+ETCD_INITIAL_CLUSTER=$OPT_CLUSTER_LIST
+ETCD_INITIAL_CLUSTER_TOKEN=$OPT_CLUSTER_TOKEN
+ETCD_INITIAL_CLUSTER_STATE=$OPT_CLUSTER_STATE
 
 ########################################################################################################
 # 安全安装
@@ -105,27 +146,23 @@ $SUDO rm -rf "$TEMP_DIR"
 
 ########################################################################################################
 
-$SUDO mkdir -p /etc/containerd
-
-$SUDO mkdir -p /etc/etcd
-$SUDO tee /etc/etcd/conf.yml >/dev/null <<EOF
-# member
-name: $ETCD_NAME
-listen-client-urls: $ETCD_LISTEN_CLIENT_URLS
-# cluster
-advertise-client-urls: $ETCD_ADVERTISE_CLIENT_URLS
-listen-peer-urls: $ETCD_LISTEN_PEER_URLS
-EOF
-
-[ "$ETCD_CLUSTER" = "1" ] && $SUDO tee -a /etc/etcd/conf.yml >/dev/null <<EOF
-initial-advertise-peer-urls: $ETCD_INITIAL_ADVERTISE_PEER_URLS
-initial-cluster: $ETCD_INITIAL_CLUSTER
-initial-cluster-token: $ETCD_INITIAL_CLUSTER_TOKEN
-initial-cluster-state: $ETCD_INITIAL_CLUSTER_STATE
-EOF
-
-# $SUDO tee /etc/default/etcd >/dev/null <<EOF
+# $SUDO mkdir -p /etc/etcd
+# $SUDO tee /etc/etcd/conf.yml >/dev/null <<EOF
 # EOF
+{
+    echo "# [ member ]"
+    [ -n "$ETCD_NAME" ] && echo "ETCD_NAME=\"$ETCD_NAME\""
+    [ -n "$ETCD_LISTEN_CLIENT_URLS" ] && echo -e "ETCD_LISTEN_CLIENT_URLS=\"$ETCD_LISTEN_CLIENT_URLS\""
+    [ -n "$ETCD_LISTEN_PEER_URLS" ] && echo -e "ETCD_LISTEN_PEER_URLS=\"$ETCD_LISTEN_PEER_URLS\""
+    echo "# [ cluster ]"
+    [ -n "$ETCD_ADVERTISE_CLIENT_URLS" ] && echo -e "ETCD_ADVERTISE_CLIENT_URLS=\"$ETCD_ADVERTISE_CLIENT_URLS\""
+    if [ "$OPT_IS_CLUSTER" = "1" ]; then
+        [ -n "$ETCD_INITIAL_ADVERTISE_PEER_URLS" ] && echo -e "ETCD_INITIAL_ADVERTISE_PEER_URLS=\"$ETCD_INITIAL_ADVERTISE_PEER_URLS\""
+        [ -n "$ETCD_INITIAL_CLUSTER" ] && echo -e "ETCD_INITIAL_CLUSTER=\"$ETCD_INITIAL_CLUSTER\""
+        [ -n "$ETCD_INITIAL_CLUSTER_TOKEN" ] && echo -e "ETCD_INITIAL_CLUSTER_TOKEN=\"$ETCD_INITIAL_CLUSTER_TOKEN\""
+        [ -n "$ETCD_INITIAL_CLUSTER_STATE" ] && echo -e "ETCD_INITIAL_CLUSTER_STATE=\"$ETCD_INITIAL_CLUSTER_STATE\""
+    fi
+} | $SUDO tee /etc/default/etcd >/dev/null
 
 $SUDO mkdir -p $SEVICE_PATH
 
@@ -146,8 +183,8 @@ Type=notify
 # User=etcd
 # PermissionsStartOnly=true
 # ExecStart=/bin/sh -c "GOMAXPROCS=\$(nproc) $INSTALL_PATH/etcd \$DAEMON_ARGS"
-ExecStart=$INSTALL_PATH/etcd \$DAEMON_ARGS --config-file=/etc/etcd/conf.yml
-# ExecStart=$INSTALL_PATH/etcd \$DAEMON_ARGS
+# ExecStart=$INSTALL_PATH/etcd \$DAEMON_ARGS --config-file=/etc/etcd/conf.yml
+ExecStart=$INSTALL_PATH/etcd \$DAEMON_ARGS
 Restart=on-abnormal
 # RestartSec=10s
 LimitNOFILE=65536
