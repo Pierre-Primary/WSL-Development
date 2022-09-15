@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-set -x
 
 # 配置安装版本
 DOCKER_VER=20.10.18
@@ -12,6 +11,8 @@ type sudo >/dev/null 2>&1 && SUDO="sudo"
 
 $SUDO systemctl stop docker.service docker.socket containerd.service 2>/dev/null
 $SUDO systemctl disable docker.service docker.socket containerd.service 2>/dev/null
+
+set -x
 
 ########################################################################################################
 # 准备工作
