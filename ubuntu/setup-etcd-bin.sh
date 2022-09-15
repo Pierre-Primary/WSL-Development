@@ -5,6 +5,7 @@ ETCD_VER=${ETCD_VER:-3.4.20}
 ETCD_ARCH=${ETCD_ARCH:-amd64}
 
 ########################################################################################################
+# 参数处理
 
 IP_ADDR=$(ip addr | awk '/inet.*global/ {print gensub(/(.*)\/(.*)/, "\\1", "g", $2); exit }')
 
@@ -82,8 +83,6 @@ if [ -z "$OPT_IS_QUIET" ]; then
         [ -z "$OPT_CLUSTER_STATE" ] && read -r -p "Enter Cluster State (new|existing) [$DEF_CLUSTER_STATE] " OPT_CLUSTER_STATE
         [ -z "$OPT_CLUSTER_STATE" ] && OPT_CLUSTER_STATE=$DEF_CLUSTER_STATE
     fi
-else
-    echo "Running Quietly Mode"
 fi
 [ -z "$OPT_NAME" ] && OPT_NAME=$DEF_NAME
 [ -z "$OPT_LISTEN_CLIENT_ADDRESS" ] && OPT_LISTEN_CLIENT_ADDRESS=$DEF_LISTEN_CLIENT_ADDRESS
@@ -132,6 +131,7 @@ $SUDO apt install -y \
     gzip
 
 ########################################################################################################
+# 安装 etcd
 
 TEMP_DIR=$(mktemp -d)
 pushd "$TEMP_DIR" >/dev/null || exit
@@ -146,11 +146,14 @@ popd >/dev/null || :
 $SUDO rm -rf "$TEMP_DIR"
 
 ########################################################################################################
+# 配置 etcd
 
 # $SUDO mkdir -p /etc/etcd
 # $SUDO tee /etc/etcd/conf.yml >/dev/null <<EOF
 # EOF
 
+# etcd 软件配置
+$SUDO mkdir -p /etc/default
 cat <<EOF | $SUDO tee /etc/default/etcd >/dev/null
 # [ member ]
 ETCD_NAME="$ETCD_NAME"
@@ -159,7 +162,6 @@ ETCD_LISTEN_PEER_URLS="$ETCD_LISTEN_PEER_URLS"
 # [ cluster ]
 ETCD_ADVERTISE_CLIENT_URLS="$ETCD_ADVERTISE_CLIENT_URLS"
 EOF
-
 [ "$OPT_IS_CLUSTER" = "1" ] && cat <<EOF | $SUDO tee -a /etc/default/etcd >/dev/null
 ETCD_INITIAL_ADVERTISE_PEER_URLS="$ETCD_INITIAL_ADVERTISE_PEER_URLS"
 ETCD_INITIAL_CLUSTER="$ETCD_INITIAL_CLUSTER"
@@ -167,8 +169,8 @@ ETCD_INITIAL_CLUSTER_TOKEN="$ETCD_INITIAL_CLUSTER_TOKEN"
 ETCD_INITIAL_CLUSTER_STATE="$ETCD_INITIAL_CLUSTER_STATE"
 EOF
 
+# etcd 服务配置
 $SUDO mkdir -p $SEVICE_PATH
-
 $SUDO tee $SEVICE_PATH/etcd.service >/dev/null <<EOF
 [Unit]
 Description=etcd - highly-available key value store
