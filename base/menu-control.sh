@@ -6,7 +6,7 @@ _S_PATH=$(
     pwd
 )
 
-alias input-control='$_S_PATH/input-control.sh'
+alias read-control='$_S_PATH/read-control.sh'
 
 print_opts() {
     _STX=$1 && shift
@@ -46,7 +46,7 @@ if true; then
     while true; do
         _STX=$(((_STX + $#) % $#))
         print_opts "$_STX" "$_SHOW_NUMBER" "$@"
-        case $(input-control) in
+        case $(read-control) in
         Up) _STX=$((_STX - 1)) ;;
         Down) _STX=$((_STX + 1)) ;;
         Enter) break ;;
